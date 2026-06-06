@@ -31,6 +31,14 @@ public class SystemUserLevelBrokerageServiceImpl extends ServiceImpl<SystemUserL
     private SystemUserLevelBrokerageDao dao;
 
     @Override
+    public List<SystemUserLevelBrokerage> getList() {
+        LambdaQueryWrapper<SystemUserLevelBrokerage> lqw = Wrappers.lambdaQuery();
+        lqw.eq(SystemUserLevelBrokerage::getIsDel, false);
+        lqw.orderByAsc(SystemUserLevelBrokerage::getLevelId);
+        return dao.selectList(lqw);
+    }
+
+    @Override
     public SystemUserLevelBrokerage getByLevelId(Integer levelId) {
         if (ObjectUtil.isNull(levelId) || levelId <= 0) {
             return null;

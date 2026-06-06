@@ -13,6 +13,11 @@ import java.util.Map;
 public interface SystemUserLevelBrokerageService extends IService<SystemUserLevelBrokerage> {
 
     /**
+     * 获取全部等级返佣配置
+     */
+    List<SystemUserLevelBrokerage> getList();
+
+    /**
      * 根据等级ID获取返佣配置
      */
     SystemUserLevelBrokerage getByLevelId(Integer levelId);

@@ -21,6 +21,7 @@ import com.zbkj.common.model.product.StoreProductCoupon;
 import com.zbkj.common.model.sms.SmsTemplate;
 import com.zbkj.common.model.system.SystemAdmin;
 import com.zbkj.common.model.system.SystemNotification;
+import com.zbkj.common.model.system.SystemUserLevelBrokerage;
 import com.zbkj.common.model.user.*;
 
 import com.zbkj.common.request.OrderPayRequest;
@@ -44,6 +45,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import java.util.HashMap;
 import java.util.List;
@@ -121,6 +123,12 @@ public class OrderPayServiceImpl implements OrderPayService {
 
     @Autowired
     private UserLevelService userLevelService;
+
+    @Autowired
+    private SystemUserLevelService systemUserLevelService;
+
+    @Autowired
+    private SystemUserLevelBrokerageService systemUserLevelBrokerageService;
 
     @Autowired
     private StoreBargainService storeBargainService;
@@ -205,15 +213,22 @@ public class OrderPayServiceImpl implements OrderPayService {
             integralList.add(integralRecordSub);
         }
 
-        // 经验处理：1.经验添加，2.等级计算
-        Integer experience;
-        experience = storeOrder.getPayPrice().setScale(0, BigDecimal.ROUND_DOWN).intValue();
-        user.setExperience(user.getExperience() + experience);
-        // 经验添加记录
-        UserExperienceRecord experienceRecord = experienceRecordInit(storeOrder, user.getExperience(), experience);
+        // 经验处理：关闭经验升级时不累计消费金额
+        final UserExperienceRecord experienceRecord;
+        if (Boolean.TRUE.equals(systemUserLevelService.hasConsumptionTriggerOnPaid())) {
+            Integer experience = storeOrder.getPayPrice().setScale(0, BigDecimal.ROUND_DOWN).intValue();
+            user.setExperience(user.getExperience() + experience);
+            experienceRecord = experienceRecordInit(storeOrder, user.getExperience(), experience);
+        } else {
+            experienceRecord = null;
+        }
 
+        // 更新用户下单数量：按配置在已付款或交易完成时计单
+        if (Boolean.TRUE.equals(systemUserLevelService.hasOrderCountTriggerOnPaid())) {
+            user.setPayCount(user.getPayCount() + 1);
+        }
 
-        // 积分处理：1.下单赠送积分，2.商品赠送积分
+        // 积分处理：1.下单赠送积分，2.商品赠送积分，3.会员等级赠送积分
         int integral;
         // 下单赠送积分
         //赠送积分比例
@@ -245,13 +260,18 @@ public class OrderPayServiceImpl implements OrderPayService {
             }
         }
 
-        // 更新用户下单数量
-        user.setPayCount(user.getPayCount() + 1);
+        // 会员等级赠送积分（手输多少送多少）
+        Integer levelGiveIntegral = userLevelService.getGiveIntegral(user);
+        if (levelGiveIntegral > 0) {
+            UserIntegralRecord levelIntegralRecord = integralRecordInit(storeOrder, user.getIntegral(), levelGiveIntegral, "level");
+            integralList.add(levelIntegralRecord);
+        }
 
         /**
          * 计算佣金，生成佣金记录
          */
         List<UserBrokerageRecord> recordList = assignCommission(storeOrder);
+        recordList.addAll(assignSelfBrokerage(storeOrder, user));
 
         // 分销员逻辑
         if (!user.getIsPromoter()) {
@@ -280,7 +300,9 @@ public class OrderPayServiceImpl implements OrderPayService {
             userIntegralRecordService.saveBatch(integralList);
 
             // 经验记录
-            userExperienceRecordService.save(experienceRecord);
+            if (ObjectUtil.isNotNull(experienceRecord)) {
+                userExperienceRecordService.save(experienceRecord);
+            }
 
             //经验升级
             userLevelService.upLevel(user);
@@ -446,6 +468,9 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
         // 查找订单所属人信息
         User user = userService.getById(storeOrder.getUid());
+        if (ObjectUtil.isNull(user)) {
+            return CollUtil.newArrayList();
+        }
         // 当前用户不存在 没有上级 或者 当用用户上级时自己  直接返回
         if(null == user.getSpreadUid() || user.getSpreadUid() < 1 || user.getSpreadUid().equals(storeOrder.getUid())){
             return CollUtil.newArrayList();
@@ -479,12 +504,54 @@ public class OrderPayServiceImpl implements OrderPayService {
     }
 
     /**
+     * 自购返佣（按购买者会员等级配置）
+     */
+    private List<UserBrokerageRecord> assignSelfBrokerage(StoreOrder storeOrder, User buyer) {
+        String isOpen = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_IS_OPEN);
+        if (StrUtil.isBlank(isOpen) || isOpen.equals("0")) {
+            return CollUtil.newArrayList();
+        }
+        if (storeOrder.getCombinationId() > 0 || storeOrder.getSeckillId() > 0 || storeOrder.getBargainId() > 0) {
+            return CollUtil.newArrayList();
+        }
+        Integer selfRate = getLevelBrokerageRate(buyer, BrokerageRecordConstants.BROKERAGE_LEVEL_SELF);
+        if (ObjectUtil.isNull(selfRate) || selfRate <= 0) {
+            return CollUtil.newArrayList();
+        }
+        BigDecimal brokerage = calculateCommissionByRate(storeOrder.getId(), toRateDecimal(selfRate));
+        if (brokerage.compareTo(BigDecimal.ZERO) <= 0) {
+            return CollUtil.newArrayList();
+        }
+        String fronzenTime = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_EXTRACT_TIME);
+        UserBrokerageRecord brokerageRecord = new UserBrokerageRecord();
+        brokerageRecord.setUid(buyer.getUid());
+        brokerageRecord.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        brokerageRecord.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+        brokerageRecord.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_SELF);
+        brokerageRecord.setPrice(brokerage);
+        brokerageRecord.setMark(StrUtil.format("获得自购返佣，分佣{}", brokerage));
+        brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE);
+        brokerageRecord.setFrozenTime(Integer.valueOf(Optional.ofNullable(fronzenTime).orElse("0")));
+        brokerageRecord.setCreateTime(CrmebDateUtil.nowDateTime());
+        brokerageRecord.setBrokerageLevel(BrokerageRecordConstants.BROKERAGE_LEVEL_SELF);
+        return CollUtil.newArrayList(brokerageRecord);
+    }
+
+    /**
      * 计算佣金
      * @param record index-分销级数，spreadUid-分销人
      * @param orderId 订单id
      * @return BigDecimal
      */
     private BigDecimal calculateCommission(MyRecord record, Integer orderId) {
+        Integer index = record.getInt("index");
+        Integer spreadUid = record.getInt("spreadUid");
+        User spreadUser = userService.getById(spreadUid);
+        Integer levelRate = getLevelBrokerageRate(spreadUser, index);
+        if (ObjectUtil.isNotNull(levelRate) && levelRate > 0) {
+            return calculateCommissionByRate(orderId, toRateDecimal(levelRate));
+        }
+
         BigDecimal brokeragePrice = BigDecimal.ZERO;
         // 查询订单详情
         List<StoreOrderInfoOldVo> orderInfoVoList = storeOrderInfoService.getOrderListByOrderId(orderId);
@@ -493,7 +560,6 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
         BigDecimal totalBrokerPrice = BigDecimal.ZERO;
         //查询对应等级的分销比例
-        Integer index = record.getInt("index");
         String key = "";
         if (index == 1) {
             key = Constants.CONFIG_KEY_STORE_BROKERAGE_RATE_ONE;
@@ -542,6 +608,54 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
 
         return totalBrokerPrice;
+    }
+
+    private BigDecimal calculateCommissionByRate(Integer orderId, BigDecimal rateBigDecimal) {
+        if (ObjectUtil.isNull(rateBigDecimal) || rateBigDecimal.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        List<StoreOrderInfoOldVo> orderInfoVoList = storeOrderInfoService.getOrderListByOrderId(orderId);
+        if (CollUtil.isEmpty(orderInfoVoList)) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal totalBrokerPrice = BigDecimal.ZERO;
+        for (StoreOrderInfoOldVo orderInfoVo : orderInfoVoList) {
+            BigDecimal brokeragePrice;
+            if (ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())) {
+                brokeragePrice = orderInfoVo.getInfo().getVipPrice().multiply(rateBigDecimal).setScale(2, BigDecimal.ROUND_DOWN);
+            } else {
+                brokeragePrice = orderInfoVo.getInfo().getPrice().multiply(rateBigDecimal).setScale(2, BigDecimal.ROUND_DOWN);
+            }
+            if (brokeragePrice.compareTo(BigDecimal.ZERO) > 0 && orderInfoVo.getInfo().getPayNum() > 1) {
+                brokeragePrice = brokeragePrice.multiply(new BigDecimal(orderInfoVo.getInfo().getPayNum()));
+            }
+            totalBrokerPrice = totalBrokerPrice.add(brokeragePrice);
+        }
+        return totalBrokerPrice;
+    }
+
+    private Integer getLevelBrokerageRate(User user, Integer brokerageLevel) {
+        if (ObjectUtil.isNull(user) || ObjectUtil.isNull(user.getLevel()) || user.getLevel() <= 0) {
+            return null;
+        }
+        SystemUserLevelBrokerage brokerage = systemUserLevelBrokerageService.getByLevelId(user.getLevel());
+        if (ObjectUtil.isNull(brokerage)) {
+            return null;
+        }
+        if (BrokerageRecordConstants.BROKERAGE_LEVEL_SELF.equals(brokerageLevel)) {
+            return brokerage.getSelfBrokerageRate();
+        }
+        if (brokerageLevel == 1) {
+            return brokerage.getBrokerageRateOne();
+        }
+        if (brokerageLevel == 2) {
+            return brokerage.getBrokerageRateTwo();
+        }
+        return null;
+    }
+
+    private BigDecimal toRateDecimal(Integer rate) {
+        return new BigDecimal(rate).divide(new BigDecimal(100), 4, RoundingMode.DOWN);
     }
 
     /**
@@ -965,6 +1079,9 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
         if (type.equals("product")) {
             integralRecord.setMark(StrUtil.format("用户付款成功,商品增加{}积分", integral));
+        }
+        if (type.equals("level")) {
+            integralRecord.setMark(StrUtil.format("用户付款成功,会员等级赠送{}积分", integral));
         }
         integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE);
         // 获取积分冻结期

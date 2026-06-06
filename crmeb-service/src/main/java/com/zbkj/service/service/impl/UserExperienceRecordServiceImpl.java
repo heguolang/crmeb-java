@@ -56,11 +56,25 @@ public class UserExperienceRecordServiceImpl extends ServiceImpl<UserExperienceR
      */
     @Override
     public UserExperienceRecord getByOrderNoAndUid(String orderNo, Integer uid) {
+        return getByOrderNoAndUidAndLinkType(orderNo, uid, ExperienceRecordConstants.EXPERIENCE_RECORD_LINK_TYPE_ORDER);
+    }
+
+    @Override
+    public UserExperienceRecord getByOrderNoAndUidAndLinkType(String orderNo, Integer uid, String linkType) {
         LambdaQueryWrapper<UserExperienceRecord> lqw = Wrappers.lambdaQuery();
         lqw.eq(UserExperienceRecord::getLinkId, orderNo);
-        lqw.eq(UserExperienceRecord::getLinkType, ExperienceRecordConstants.EXPERIENCE_RECORD_LINK_TYPE_ORDER);
+        lqw.eq(UserExperienceRecord::getLinkType, linkType);
         lqw.eq(UserExperienceRecord::getUid, uid);
         return dao.selectOne(lqw);
+    }
+
+    @Override
+    public Integer countCompleteOrderByUid(Integer uid) {
+        LambdaQueryWrapper<UserExperienceRecord> lqw = Wrappers.lambdaQuery();
+        lqw.eq(UserExperienceRecord::getUid, uid);
+        lqw.eq(UserExperienceRecord::getLinkType, ExperienceRecordConstants.EXPERIENCE_RECORD_LINK_TYPE_ORDER_COUNT);
+        lqw.eq(UserExperienceRecord::getType, ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_ADD);
+        return dao.selectCount(lqw);
     }
 }
 

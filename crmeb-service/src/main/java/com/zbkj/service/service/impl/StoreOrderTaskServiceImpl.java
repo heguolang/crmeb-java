@@ -120,6 +120,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
     private UserLevelService userLevelService;
 
     @Autowired
+    private SystemUserLevelService systemUserLevelService;
+
+    @Autowired
     private StoreProductAttrValueService attrValueService;
 
     @Autowired
@@ -184,9 +187,11 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
         /*
          * 1、修改订单状态 （用户操作的时候已处理）
          * 2、写订单日志
+         * 3、交易完成时累计消费金额并触发升级
          * */
         try{
             storeOrderStatusService.createLog(storeOrder.getId(), "check_order_over", "用户评价");
+            userLevelService.processLevelOnOrderComplete(storeOrder);
             return true;
         }catch (Exception e){
             return false;
@@ -290,18 +295,53 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
             return Boolean.FALSE;
         }
 
-        // 回滚经验
-        UserExperienceRecord userExperienceRecord = userExperienceRecordService.getByOrderNoAndUid(storeOrder.getOrderId(), storeOrder.getUid());
-        user.setExperience(user.getExperience() - userExperienceRecord.getExperience());
+        // 回滚经验（关闭经验升级时跳过）
+        final UserExperienceRecord refundExperienceRecord;
+        if (UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED) {
+            UserExperienceRecord userExperienceRecord = userExperienceRecordService.getByOrderNoAndUid(storeOrder.getOrderId(), storeOrder.getUid());
+            if (ObjectUtil.isNotNull(userExperienceRecord)) {
+                user.setExperience(user.getExperience() - userExperienceRecord.getExperience());
+                refundExperienceRecord = new UserExperienceRecord();
+                BeanUtils.copyProperties(userExperienceRecord, refundExperienceRecord);
+                refundExperienceRecord.setId(null);
+                refundExperienceRecord.setTitle(ExperienceRecordConstants.EXPERIENCE_RECORD_TITLE_REFUND);
+                refundExperienceRecord.setType(ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_SUB);
+                refundExperienceRecord.setBalance(user.getExperience());
+                refundExperienceRecord.setMark(StrUtil.format("订单退款，扣除{}赠送经验", userExperienceRecord.getExperience()));
+                refundExperienceRecord.setCreateTime(cn.hutool.core.date.DateUtil.date());
+            } else {
+                refundExperienceRecord = null;
+            }
+        } else {
+            refundExperienceRecord = null;
+        }
 
-        UserExperienceRecord experienceRecord = new UserExperienceRecord();
-        BeanUtils.copyProperties(userExperienceRecord, experienceRecord);
-        experienceRecord.setId(null);
-        experienceRecord.setTitle(ExperienceRecordConstants.EXPERIENCE_RECORD_TITLE_REFUND);
-        experienceRecord.setType(ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_SUB);
-        experienceRecord.setBalance(user.getExperience());
-        experienceRecord.setMark(StrUtil.format("订单退款，扣除{}赠送经验", userExperienceRecord.getExperience()));
-        experienceRecord.setCreateTime(cn.hutool.core.date.DateUtil.date());
+        // 回滚订单数（仅当该订单已计入订单数时）
+        final UserExperienceRecord refundOrderCountRecord;
+        boolean orderCountChanged = false;
+        UserExperienceRecord orderCountRecord = userExperienceRecordService.getByOrderNoAndUidAndLinkType(
+                storeOrder.getOrderId(), storeOrder.getUid(),
+                ExperienceRecordConstants.EXPERIENCE_RECORD_LINK_TYPE_ORDER_COUNT);
+        if (ObjectUtil.isNotNull(orderCountRecord)) {
+            refundOrderCountRecord = new UserExperienceRecord();
+            BeanUtils.copyProperties(orderCountRecord, refundOrderCountRecord);
+            refundOrderCountRecord.setId(null);
+            refundOrderCountRecord.setTitle(ExperienceRecordConstants.EXPERIENCE_RECORD_TITLE_REFUND);
+            refundOrderCountRecord.setType(ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_SUB);
+            refundOrderCountRecord.setBalance(Math.max(0,
+                    ObjectUtil.defaultIfNull(userExperienceRecordService.countCompleteOrderByUid(storeOrder.getUid()), 0) - 1));
+            refundOrderCountRecord.setMark("订单退款，扣除1笔交易完成计单");
+            refundOrderCountRecord.setCreateTime(cn.hutool.core.date.DateUtil.date());
+            orderCountChanged = true;
+        } else {
+            refundOrderCountRecord = null;
+        }
+        if (Boolean.TRUE.equals(systemUserLevelService.hasOrderCountTriggerOnPaid())
+                && Boolean.TRUE.equals(storeOrder.getPaid())) {
+            user.setPayCount(Math.max(0, ObjectUtil.defaultIfNull(user.getPayCount(), 0) - 1));
+            orderCountChanged = true;
+        }
+        final boolean levelStatsChanged = ObjectUtil.isNotNull(refundExperienceRecord) || orderCountChanged;
 
         // 回滚积分
         List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(storeOrder.getOrderId(), storeOrder.getUid());
@@ -364,9 +404,16 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                 userBrokerageRecordService.updateBatchById(brokerageRecordList);
             }
 
-            // 经验处理
-            userExperienceRecordService.save(experienceRecord);
-            userLevelService.downLevel(user);
+            // 经验/订单数处理
+            if (ObjectUtil.isNotNull(refundExperienceRecord)) {
+                userExperienceRecordService.save(refundExperienceRecord);
+            }
+            if (ObjectUtil.isNotNull(refundOrderCountRecord)) {
+                userExperienceRecordService.save(refundOrderCountRecord);
+            }
+            if (levelStatsChanged) {
+                userLevelService.downLevel(user);
+            }
 
             // 回滚库存
             Boolean rollbackStock = rollbackStock(storeOrder);

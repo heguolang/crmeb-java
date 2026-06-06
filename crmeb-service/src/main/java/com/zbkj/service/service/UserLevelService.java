@@ -2,9 +2,12 @@ package com.zbkj.service.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zbkj.common.request.PageParamRequest;
+import com.zbkj.common.model.order.StoreOrder;
+import com.zbkj.common.model.system.SystemUserLevel;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserLevel;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -48,5 +51,34 @@ public interface UserLevelService extends IService<UserLevel> {
      * @return Boolean
      */
     Boolean deleteByLevelId(Integer levelId);
+
+    /**
+     * 根据用户当前数据匹配应达到的会员等级
+     * @param user 用户
+     * @return 匹配的等级配置
+     */
+    SystemUserLevel resolveMatchedLevel(User user);
+
+    /**
+     * 获取用户当前等级每单赠送积分
+     * @param user 用户
+     * @return 赠送积分数
+     */
+    Integer getGiveIntegral(User user);
+
+    /**
+     * 获取用户完成本单支付后等级每单赠送积分
+     * @param user 用户
+     * @param payAmount 本单支付金额
+     * @return 赠送积分数
+     */
+    Integer getProjectedGiveIntegral(User user, BigDecimal payAmount);
+
+    /**
+     * 订单交易完成时按配置累计消费金额/订单数并触发升级
+     * @param storeOrder 订单
+     * @return Boolean
+     */
+    Boolean processLevelOnOrderComplete(StoreOrder storeOrder);
 
 }

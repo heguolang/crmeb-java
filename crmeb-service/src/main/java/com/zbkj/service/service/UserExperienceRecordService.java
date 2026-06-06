@@ -35,4 +35,14 @@ public interface UserExperienceRecordService extends IService<UserExperienceReco
      * @return UserExperienceRecord
      */
     UserExperienceRecord getByOrderNoAndUid(String orderNo, Integer uid);
+
+    /**
+     * 通过订单编号和关联类型获取记录
+     */
+    UserExperienceRecord getByOrderNoAndUidAndLinkType(String orderNo, Integer uid, String linkType);
+
+    /**
+     * 统计用户交易完成计单记录数
+     */
+    Integer countCompleteOrderByUid(Integer uid);
 }

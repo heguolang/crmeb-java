@@ -171,6 +171,9 @@ public class OrderServiceImpl implements OrderService {
     private SystemUserLevelService systemUserLevelService;
 
     @Autowired
+    private UserLevelService userLevelService;
+
+    @Autowired
     private SystemNotificationService systemNotificationService;
 
     @Autowired
@@ -1058,6 +1061,9 @@ public class OrderServiceImpl implements OrderService {
                 }
             }
         }
+
+        // 会员等级赠送积分
+        gainIntegral += userLevelService.getProjectedGiveIntegral(user, computedOrderPriceResponse.getPayFee());
 
         StoreOrder storeOrder = new StoreOrder();
         storeOrder.setUid(user.getUid());

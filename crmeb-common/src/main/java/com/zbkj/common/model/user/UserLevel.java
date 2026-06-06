@@ -61,6 +61,9 @@ public class UserLevel implements Serializable {
     @ApiModelProperty(value = "享受折扣")
     private Integer discount;
 
+    @ApiModelProperty(value = "等级赠送积分")
+    private Integer giveIntegral;
+
     @ApiModelProperty(value = "创建时间")
     private Date updateTime;
 

@@ -15,6 +15,7 @@ import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.constants.Constants;
 import com.zbkj.common.constants.ExperienceRecordConstants;
 import com.zbkj.common.constants.IntegralRecordConstants;
+import com.zbkj.common.constants.UserLevelConstants;
 import com.zbkj.common.constants.SysGroupDataConstants;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.response.UserSignInfoResponse;
@@ -167,34 +168,38 @@ public class UserSignServiceImpl extends ServiceImpl<UserSignDao, UserSign> impl
         integralRecord.setMark(StrUtil.format("签到积分奖励增加了{}积分", configVo.getIntegral()));
         integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
 
-        //更新用户经验信息
-        UserExperienceRecord experienceRecord = new UserExperienceRecord();
-        experienceRecord.setUid(user.getUid());
-        experienceRecord.setLinkType(ExperienceRecordConstants.EXPERIENCE_RECORD_LINK_TYPE_SIGN);
-        experienceRecord.setType(ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_ADD);
-        experienceRecord.setTitle(ExperienceRecordConstants.EXPERIENCE_RECORD_TITLE_SIGN);
-        experienceRecord.setExperience(configVo.getExperience());
-        experienceRecord.setBalance(user.getExperience() + configVo.getExperience());
-        experienceRecord.setMark(StrUtil.format("签到经验奖励增加了{}经验", configVo.getExperience()));
-        experienceRecord.setStatus(ExperienceRecordConstants.EXPERIENCE_RECORD_STATUS_CREATE);
+        UserExperienceRecord experienceRecord = null;
+        if (UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED
+                && ObjectUtil.defaultIfNull(configVo.getExperience(), 0) > 0) {
+            experienceRecord = new UserExperienceRecord();
+            experienceRecord.setUid(user.getUid());
+            experienceRecord.setLinkType(ExperienceRecordConstants.EXPERIENCE_RECORD_LINK_TYPE_SIGN);
+            experienceRecord.setType(ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_ADD);
+            experienceRecord.setTitle(ExperienceRecordConstants.EXPERIENCE_RECORD_TITLE_SIGN);
+            experienceRecord.setExperience(configVo.getExperience());
+            experienceRecord.setBalance(user.getExperience() + configVo.getExperience());
+            experienceRecord.setMark(StrUtil.format("签到经验奖励增加了{}经验", configVo.getExperience()));
+            experienceRecord.setStatus(ExperienceRecordConstants.EXPERIENCE_RECORD_STATUS_CREATE);
+            user.setExperience(user.getExperience() + configVo.getExperience());
+        }
 
         // 更新用户积分
         user.setIntegral(user.getIntegral() + configVo.getIntegral());
-        // 更新用户经验
-        user.setExperience(user.getExperience() + configVo.getExperience());
 
+        final UserExperienceRecord finalExperienceRecord = experienceRecord;
         Boolean execute = transactionTemplate.execute(e -> {
             //保存签到数据
             save(userSign);
             // 更新用户积分记录
             userIntegralRecordService.save(integralRecord);
-            //更新用户经验信息
-            userExperienceRecordService.save(experienceRecord);
-            //更新用户 签到天数、积分、经验
+            if (ObjectUtil.isNotNull(finalExperienceRecord)) {
+                userExperienceRecordService.save(finalExperienceRecord);
+            }
             user.setUpdateTime(DateUtil.date());
             userService.updateById(user);
-            // 用户升级
-            userLevelService.upLevel(user);
+            if (UserLevelConstants.SIGN_LEVEL_UPGRADE_ENABLED) {
+                userLevelService.upLevel(user);
+            }
             return Boolean.TRUE;
         });
 

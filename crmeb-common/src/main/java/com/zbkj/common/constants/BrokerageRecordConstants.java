@@ -47,6 +47,12 @@ public class BrokerageRecordConstants {
     /** 佣金记录标题—订单获得佣金 */
     public static final String BROKERAGE_RECORD_TITLE_ORDER = "获得推广佣金";
 
+    /** 佣金记录标题—自购返佣 */
+    public static final String BROKERAGE_RECORD_TITLE_SELF = "获得自购返佣";
+
+    /** 分销等级—自购返佣 */
+    public static final Integer BROKERAGE_LEVEL_SELF = 0;
+
     /** 佣金记录标题—提现申请 */
     public static final String BROKERAGE_RECORD_TITLE_WITHDRAW_APPLY = "提现申请";
 

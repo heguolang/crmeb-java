@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.zbkj.common.model.system.SystemUserLevel;
 import com.zbkj.common.request.SystemUserLevelRequest;
 import com.zbkj.common.request.SystemUserLevelUpdateShowRequest;
+import com.zbkj.common.response.SystemUserLevelInfoResponse;
 
 import java.util.List;
 
@@ -25,6 +26,17 @@ public interface SystemUserLevelService extends IService<SystemUserLevel> {
      * 获取等级列表
      */
     List<SystemUserLevel> getList();
+
+    /**
+     * 获取全部等级（不分页）
+     */
+    List<SystemUserLevel> getAllList();
+
+    /**
+     * 获取等级详情
+     * @param id 等级id
+     */
+    SystemUserLevelInfoResponse getInfo(Integer id);
 
     /**
      * 系统等级新增
@@ -66,4 +78,25 @@ public interface SystemUserLevelService extends IService<SystemUserLevel> {
      * @return List
      */
     List<SystemUserLevel> getUsableList();
+
+    /**
+     * 是否存在「已付款」统计消费金额的启用等级
+     */
+    Boolean hasConsumptionTriggerOnPaid();
+
+    /**
+     * 是否存在「交易完成」统计消费金额的启用等级
+     */
+    Boolean hasConsumptionTriggerOnComplete();
+
+    /**
+     * 是否存在「已付款」统计订单数的启用等级
+     */
+    Boolean hasOrderCountTriggerOnPaid();
+
+    /**
+     * 是否存在「交易完成」统计订单数的启用等级
+     */
+    Boolean hasOrderCountTriggerOnComplete();
+
 }

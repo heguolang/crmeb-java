@@ -26,6 +26,9 @@ public class ExperienceRecordConstants {
     /** 经验记录关联类型—订单 */
     public static final String EXPERIENCE_RECORD_LINK_TYPE_ORDER = "order";
 
+    /** 经验记录关联类型—订单数统计 */
+    public static final String EXPERIENCE_RECORD_LINK_TYPE_ORDER_COUNT = "order_count";
+
     /** 经验记录关联类型—签到 */
     public static final String EXPERIENCE_RECORD_LINK_TYPE_SIGN = "sign";
 
@@ -34,6 +37,12 @@ public class ExperienceRecordConstants {
 
     /** 经验记录标题—用户订单付款成功 */
     public static final String EXPERIENCE_RECORD_TITLE_ORDER = "用户订单付款成功";
+
+    /** 经验记录标题—订单交易完成 */
+    public static final String EXPERIENCE_RECORD_TITLE_ORDER_COMPLETE = "订单交易完成";
+
+    /** 经验记录标题—订单交易完成计单 */
+    public static final String EXPERIENCE_RECORD_TITLE_ORDER_COUNT_COMPLETE = "订单交易完成计单";
 
     /** 经验记录标题—签到经验奖励 */
     public static final String EXPERIENCE_RECORD_TITLE_SIGN = "签到经验奖励";

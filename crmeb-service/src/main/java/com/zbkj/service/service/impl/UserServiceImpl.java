@@ -1561,10 +1561,10 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         if (ObjectUtil.isNull(userLevel)) {
             throw new CrmebException("用户会员等级不存在，请检查用户数据");
         }
-        if (userLevel.getGrade() > systemUserLevel.getGrade()) {
-            if (ObjectUtil.isNull(request.getIsSub())) {
-                throw new CrmebException("降低用户等级时，请选择是否扣除用户经验值");
-            }
+        if (UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED
+                && userLevel.getGrade() > systemUserLevel.getGrade()
+                && ObjectUtil.isNull(request.getIsSub())) {
+            throw new CrmebException("降低用户等级时，请选择是否扣除用户经验值");
         }
 
         // 升级
@@ -1577,6 +1577,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             newLevel.setStatus(true);
             newLevel.setMark(StrUtil.format("尊敬的用户 {},在{}管理员调整会员等级成为{}", user.getNickname(), CrmebDateUtil.nowDateTimeStr(), systemUserLevel.getName()));
             newLevel.setDiscount(systemUserLevel.getDiscount());
+            newLevel.setGiveIntegral(systemUserLevel.getGiveIntegral());
             newLevel.setCreateTime(CrmebDateUtil.nowDateTime());
             return transactionTemplate.execute(e -> {
                 updateLevel(user.getUid(), request.getLevelId());
@@ -1585,7 +1586,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             });
         }
         // 降级
-        if (!request.getIsSub()) {// 不扣经验
+        if (!UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED || !Boolean.TRUE.equals(request.getIsSub())) {// 不扣经验
             // 创建用户会员等级记录
             UserLevel newLevel = new UserLevel();
             newLevel.setUid(user.getUid());
@@ -1594,6 +1595,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             newLevel.setStatus(true);
             newLevel.setMark(StrUtil.format("尊敬的用户 {},在{}管理员调整会员等级成为{},不扣除经验", user.getNickname(), CrmebDateUtil.nowDateTimeStr(), systemUserLevel.getName()));
             newLevel.setDiscount(systemUserLevel.getDiscount());
+            newLevel.setGiveIntegral(systemUserLevel.getGiveIntegral());
             newLevel.setCreateTime(CrmebDateUtil.nowDateTime());
             return transactionTemplate.execute(e -> {
                 updateLevel(user.getUid(), request.getLevelId());
@@ -1624,6 +1626,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         newLevel.setStatus(true);
         newLevel.setMark(StrUtil.format("尊敬的用户 {},在{}管理员调整会员等级成为{},扣除经验{}", user.getNickname(), CrmebDateUtil.nowDateTimeStr(), systemUserLevel.getName(), deductionExp));
         newLevel.setDiscount(systemUserLevel.getDiscount());
+        newLevel.setGiveIntegral(systemUserLevel.getGiveIntegral());
         newLevel.setCreateTime(CrmebDateUtil.nowDateTime());
         return transactionTemplate.execute(e -> {
             user.setUpdateTime(DateUtil.date());

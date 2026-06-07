@@ -21,6 +21,7 @@ import com.zbkj.common.model.product.StoreProductCoupon;
 import com.zbkj.common.model.sms.SmsTemplate;
 import com.zbkj.common.model.system.SystemAdmin;
 import com.zbkj.common.model.system.SystemNotification;
+import com.zbkj.common.model.system.SystemUserLevel;
 import com.zbkj.common.model.system.SystemUserLevelBrokerage;
 import com.zbkj.common.model.user.*;
 
@@ -213,9 +214,10 @@ public class OrderPayServiceImpl implements OrderPayService {
             integralList.add(integralRecordSub);
         }
 
-        // 经验处理：关闭经验升级时不累计消费金额
+        // 经验处理：存在「已付款」统计消费金额的等级时累计（1元=1经验）
         final UserExperienceRecord experienceRecord;
-        if (Boolean.TRUE.equals(systemUserLevelService.hasConsumptionTriggerOnPaid())) {
+        if (UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED
+                && Boolean.TRUE.equals(systemUserLevelService.hasConsumptionTriggerOnPaid())) {
             Integer experience = storeOrder.getPayPrice().setScale(0, BigDecimal.ROUND_DOWN).intValue();
             user.setExperience(user.getExperience() + experience);
             experienceRecord = experienceRecordInit(storeOrder, user.getExperience(), experience);
@@ -267,11 +269,15 @@ public class OrderPayServiceImpl implements OrderPayService {
             integralList.add(levelIntegralRecord);
         }
 
+        // 按本单支付后统计数据匹配会员等级，读取该等级返佣配置
+        SystemUserLevel matchedBrokerageLevel = userLevelService.resolveMatchedLevel(user);
+        Integer brokerageLevelId = ObjectUtil.isNotNull(matchedBrokerageLevel) ? matchedBrokerageLevel.getId() : null;
+
         /**
-         * 计算佣金，生成佣金记录
+         * 计算佣金，生成佣金记录（自购/一级/二级比例取自购买者匹配等级的返佣配置）
          */
-        List<UserBrokerageRecord> recordList = assignCommission(storeOrder);
-        recordList.addAll(assignSelfBrokerage(storeOrder, user));
+        List<UserBrokerageRecord> recordList = assignCommission(storeOrder, brokerageLevelId, matchedBrokerageLevel);
+        recordList.addAll(assignSelfBrokerage(storeOrder, user, brokerageLevelId, matchedBrokerageLevel));
 
         // 分销员逻辑
         if (!user.getIsPromoter()) {
@@ -452,11 +458,13 @@ public class OrderPayServiceImpl implements OrderPayService {
     }
 
     /**
-     * 分配佣金
+     * 分配佣金（一级/二级比例取自购买者本单匹配等级的返佣配置）
      * @param storeOrder 订单
+     * @param buyerLevelId 购买者本单支付后匹配的会员等级ID
      * @return List<UserBrokerageRecord>
      */
-    private List<UserBrokerageRecord> assignCommission(StoreOrder storeOrder) {
+    private List<UserBrokerageRecord> assignCommission(StoreOrder storeOrder, Integer buyerLevelId,
+                                                       SystemUserLevel matchedLevel) {
         // 检测商城是否开启分销功能
         String isOpen = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_IS_OPEN);
         if(StrUtil.isBlank(isOpen) || isOpen.equals("0")){
@@ -482,31 +490,44 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
         // 获取佣金冻结期
         String fronzenTime = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_EXTRACT_TIME);
+        String levelName = ObjectUtil.isNotNull(matchedLevel) ? matchedLevel.getName() : "";
 
         // 生成佣金记录
         List<UserBrokerageRecord> brokerageRecordList = spreadRecordList.stream().map(record -> {
-            BigDecimal brokerage = calculateCommission(record, storeOrder.getId());
+            Integer index = record.getInt("index");
+            Integer levelRate = getLevelBrokerageRate(buyerLevelId, index);
+            BigDecimal brokerage = calculateCommission(record, storeOrder.getId(), buyerLevelId);
+            if (brokerage.compareTo(BigDecimal.ZERO) <= 0) {
+                return null;
+            }
             UserBrokerageRecord brokerageRecord = new UserBrokerageRecord();
             brokerageRecord.setUid(record.getInt("spreadUid"));
             brokerageRecord.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
             brokerageRecord.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
             brokerageRecord.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_ORDER);
             brokerageRecord.setPrice(brokerage);
-            brokerageRecord.setMark(StrUtil.format("获得推广佣金，分佣{}", brokerage));
+            if (ObjectUtil.isNotNull(levelRate) && StrUtil.isNotBlank(levelName)) {
+                brokerageRecord.setMark(StrUtil.format("获得推广佣金，购买者等级{}，{}级返佣{}%，分佣{}",
+                        levelName, index, levelRate, brokerage));
+            } else {
+                brokerageRecord.setMark(StrUtil.format("获得推广佣金，分佣{}", brokerage));
+            }
             brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE);
             brokerageRecord.setFrozenTime(Integer.valueOf(Optional.ofNullable(fronzenTime).orElse("0")));
             brokerageRecord.setCreateTime(CrmebDateUtil.nowDateTime());
-            brokerageRecord.setBrokerageLevel(record.getInt("index"));
+            brokerageRecord.setBrokerageLevel(index);
             return brokerageRecord;
-        }).collect(Collectors.toList());
+        }).filter(ObjectUtil::isNotNull).collect(Collectors.toList());
 
         return brokerageRecordList;
     }
 
     /**
-     * 自购返佣（按购买者会员等级配置）
+     * 自购返佣（按购买者本单支付后匹配等级的返佣配置）
+     * @param buyerLevelId 购买者本单支付后匹配的会员等级ID
      */
-    private List<UserBrokerageRecord> assignSelfBrokerage(StoreOrder storeOrder, User buyer) {
+    private List<UserBrokerageRecord> assignSelfBrokerage(StoreOrder storeOrder, User buyer,
+                                                          Integer buyerLevelId, SystemUserLevel matchedLevel) {
         String isOpen = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_IS_OPEN);
         if (StrUtil.isBlank(isOpen) || isOpen.equals("0")) {
             return CollUtil.newArrayList();
@@ -514,7 +535,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         if (storeOrder.getCombinationId() > 0 || storeOrder.getSeckillId() > 0 || storeOrder.getBargainId() > 0) {
             return CollUtil.newArrayList();
         }
-        Integer selfRate = getLevelBrokerageRate(buyer, BrokerageRecordConstants.BROKERAGE_LEVEL_SELF);
+        Integer selfRate = getLevelBrokerageRate(buyerLevelId, BrokerageRecordConstants.BROKERAGE_LEVEL_SELF);
         if (ObjectUtil.isNull(selfRate) || selfRate <= 0) {
             return CollUtil.newArrayList();
         }
@@ -529,7 +550,8 @@ public class OrderPayServiceImpl implements OrderPayService {
         brokerageRecord.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
         brokerageRecord.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_SELF);
         brokerageRecord.setPrice(brokerage);
-        brokerageRecord.setMark(StrUtil.format("获得自购返佣，分佣{}", brokerage));
+        String levelName = ObjectUtil.isNotNull(matchedLevel) ? matchedLevel.getName() : "";
+        brokerageRecord.setMark(StrUtil.format("获得自购返佣（{}自购返佣{}%），分佣{}", levelName, selfRate, brokerage));
         brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE);
         brokerageRecord.setFrozenTime(Integer.valueOf(Optional.ofNullable(fronzenTime).orElse("0")));
         brokerageRecord.setCreateTime(CrmebDateUtil.nowDateTime());
@@ -541,14 +563,14 @@ public class OrderPayServiceImpl implements OrderPayService {
      * 计算佣金
      * @param record index-分销级数，spreadUid-分销人
      * @param orderId 订单id
+     * @param buyerLevelId 购买者本单匹配等级ID（用于读取该等级的一级/二级返佣比例）
      * @return BigDecimal
      */
-    private BigDecimal calculateCommission(MyRecord record, Integer orderId) {
+    private BigDecimal calculateCommission(MyRecord record, Integer orderId, Integer buyerLevelId) {
         Integer index = record.getInt("index");
-        Integer spreadUid = record.getInt("spreadUid");
-        User spreadUser = userService.getById(spreadUid);
-        Integer levelRate = getLevelBrokerageRate(spreadUser, index);
-        if (ObjectUtil.isNotNull(levelRate) && levelRate > 0) {
+        Integer levelRate = getLevelBrokerageRate(buyerLevelId, index);
+        // 购买者已匹配等级且该等级有返佣配置：按配置比例计算（含配置为0的情况，不再走全局）
+        if (ObjectUtil.isNotNull(levelRate)) {
             return calculateCommissionByRate(orderId, toRateDecimal(levelRate));
         }
 
@@ -634,22 +656,28 @@ public class OrderPayServiceImpl implements OrderPayService {
         return totalBrokerPrice;
     }
 
-    private Integer getLevelBrokerageRate(User user, Integer brokerageLevel) {
-        if (ObjectUtil.isNull(user) || ObjectUtil.isNull(user.getLevel()) || user.getLevel() <= 0) {
+    /**
+     * 按会员等级ID读取返佣比例（取自 eb_system_user_level_brokerage）
+     * @param levelId 会员等级ID
+     * @param brokerageLevel 0=自购，1=一级，2=二级
+     * @return 比例值；null 表示该等级无返佣配置（可回退全局）；0 表示已配置为0%
+     */
+    private Integer getLevelBrokerageRate(Integer levelId, Integer brokerageLevel) {
+        if (ObjectUtil.isNull(levelId) || levelId <= 0) {
             return null;
         }
-        SystemUserLevelBrokerage brokerage = systemUserLevelBrokerageService.getByLevelId(user.getLevel());
+        SystemUserLevelBrokerage brokerage = systemUserLevelBrokerageService.getByLevelId(levelId);
         if (ObjectUtil.isNull(brokerage)) {
             return null;
         }
         if (BrokerageRecordConstants.BROKERAGE_LEVEL_SELF.equals(brokerageLevel)) {
-            return brokerage.getSelfBrokerageRate();
+            return ObjectUtil.defaultIfNull(brokerage.getSelfBrokerageRate(), 0);
         }
         if (brokerageLevel == 1) {
-            return brokerage.getBrokerageRateOne();
+            return ObjectUtil.defaultIfNull(brokerage.getBrokerageRateOne(), 0);
         }
         if (brokerageLevel == 2) {
-            return brokerage.getBrokerageRateTwo();
+            return ObjectUtil.defaultIfNull(brokerage.getBrokerageRateTwo(), 0);
         }
         return null;
     }

@@ -1,5 +1,6 @@
 package com.zbkj.service.service.impl;
 
+import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -75,6 +76,28 @@ public class UserExperienceRecordServiceImpl extends ServiceImpl<UserExperienceR
         lqw.eq(UserExperienceRecord::getLinkType, ExperienceRecordConstants.EXPERIENCE_RECORD_LINK_TYPE_ORDER_COUNT);
         lqw.eq(UserExperienceRecord::getType, ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_ADD);
         return dao.selectCount(lqw);
+    }
+
+    @Override
+    public Integer sumPaidConsumptionByUid(Integer uid) {
+        return sumOrderConsumptionByTitle(uid, ExperienceRecordConstants.EXPERIENCE_RECORD_TITLE_ORDER);
+    }
+
+    @Override
+    public Integer sumCompleteConsumptionByUid(Integer uid) {
+        return sumOrderConsumptionByTitle(uid, ExperienceRecordConstants.EXPERIENCE_RECORD_TITLE_ORDER_COMPLETE);
+    }
+
+    private Integer sumOrderConsumptionByTitle(Integer uid, String title) {
+        LambdaQueryWrapper<UserExperienceRecord> lqw = Wrappers.lambdaQuery();
+        lqw.eq(UserExperienceRecord::getUid, uid);
+        lqw.eq(UserExperienceRecord::getLinkType, ExperienceRecordConstants.EXPERIENCE_RECORD_LINK_TYPE_ORDER);
+        lqw.eq(UserExperienceRecord::getType, ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_ADD);
+        lqw.eq(UserExperienceRecord::getTitle, title);
+        List<UserExperienceRecord> recordList = dao.selectList(lqw);
+        return recordList.stream()
+                .mapToInt(record -> ObjectUtil.defaultIfNull(record.getExperience(), 0))
+                .sum();
     }
 }
 

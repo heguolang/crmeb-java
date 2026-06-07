@@ -22,8 +22,8 @@ public class UserLevelConstants {
     /** 系统用户等级规则 */
     public static final String SYSTEM_USER_LEVEL_RULE = "userLevelRule";
 
-    /** 是否启用经验参与等级升级（关闭后仅按订单数 upgradeValue 判断，不累计/回滚经验） */
-    public static final Boolean EXPERIENCE_UPGRADE_ENABLED = false;
+    /** 是否启用经验参与等级升级（开启后支持 upgradeType=1/3 的消费金额升级） */
+    public static final Boolean EXPERIENCE_UPGRADE_ENABLED = true;
 
     /** 签到是否触发等级升级 */
     public static final Boolean SIGN_LEVEL_UPGRADE_ENABLED = false;

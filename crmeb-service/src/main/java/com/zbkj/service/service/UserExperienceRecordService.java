@@ -45,4 +45,14 @@ public interface UserExperienceRecordService extends IService<UserExperienceReco
      * 统计用户交易完成计单记录数
      */
     Integer countCompleteOrderByUid(Integer uid);
+
+    /**
+     * 统计用户已付款累计消费金额（经验值）
+     */
+    Integer sumPaidConsumptionByUid(Integer uid);
+
+    /**
+     * 统计用户交易完成累计消费金额（经验值）
+     */
+    Integer sumCompleteConsumptionByUid(Integer uid);
 }

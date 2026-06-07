@@ -256,23 +256,59 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
 
     @Override
     public Integer getProjectedGiveIntegral(User user, BigDecimal payAmount) {
+        User projectedUser = buildProjectedUserAfterPay(user, payAmount);
+        int additionalConsumption = getAdditionalPaidConsumption(payAmount);
+        SystemUserLevel matchedLevel = resolveMatchedLevel(projectedUser, additionalConsumption);
+        if (ObjectUtil.isNull(matchedLevel)) {
+            return UserLevelConstants.DEFAULT_GIVE_INTEGRAL;
+        }
+        return ObjectUtil.defaultIfNull(matchedLevel.getGiveIntegral(), UserLevelConstants.DEFAULT_GIVE_INTEGRAL);
+    }
+
+    /**
+     * 模拟本单支付后用户升级统计数据（用于积分/等级预览）
+     */
+    private User buildProjectedUserAfterPay(User user, BigDecimal payAmount) {
         User projectedUser = new User();
         projectedUser.setUid(user.getUid());
         projectedUser.setExperience(ObjectUtil.defaultIfNull(user.getExperience(), 0));
-        if (Boolean.TRUE.equals(systemUserLevelService.hasOrderCountTriggerOnPaid())) {
-            projectedUser.setPayCount(ObjectUtil.defaultIfNull(user.getPayCount(), 0) + 1);
-        } else {
-            projectedUser.setPayCount(ObjectUtil.defaultIfNull(user.getPayCount(), 0));
+        projectedUser.setPayCount(ObjectUtil.defaultIfNull(user.getPayCount(), 0));
+        int additionalConsumption = getAdditionalPaidConsumption(payAmount);
+        if (additionalConsumption > 0) {
+            projectedUser.setExperience(projectedUser.getExperience() + additionalConsumption);
         }
-        return getGiveIntegral(projectedUser);
+        if (Boolean.TRUE.equals(systemUserLevelService.hasOrderCountTriggerOnPaid())) {
+            projectedUser.setPayCount(projectedUser.getPayCount() + 1);
+        }
+        return projectedUser;
+    }
+
+    private int getAdditionalPaidConsumption(BigDecimal payAmount) {
+        if (!UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED
+                || !Boolean.TRUE.equals(systemUserLevelService.hasConsumptionTriggerOnPaid())) {
+            return 0;
+        }
+        return payAmount.setScale(0, BigDecimal.ROUND_DOWN).intValue();
     }
 
     /**
      * 根据升级条件匹配用户当前应达到的等级
      */
     private SystemUserLevel resolveMatchedLevel(User user, List<SystemUserLevel> list) {
+        return resolveMatchedLevel(user, list, 0);
+    }
+
+    private SystemUserLevel resolveMatchedLevel(User user, int additionalConsumption) {
+        List<SystemUserLevel> list = systemUserLevelService.getUsableList();
+        if (CollUtil.isEmpty(list)) {
+            return null;
+        }
+        return resolveMatchedLevel(user, list, additionalConsumption);
+    }
+
+    private SystemUserLevel resolveMatchedLevel(User user, List<SystemUserLevel> list, int additionalConsumption) {
         return list.stream()
-                .filter(level -> meetsUpgradeCondition(user, level))
+                .filter(level -> meetsUpgradeCondition(user, level, additionalConsumption))
                 .max(Comparator.comparing(SystemUserLevel::getGrade))
                 .orElse(null);
     }
@@ -281,29 +317,36 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
      * 根据等级配置判断是否满足升级条件
      */
     private boolean meetsUpgradeCondition(User user, SystemUserLevel level) {
-        int orderCountThreshold = ObjectUtil.defaultIfNull(level.getUpgradeValue(), 0);
-        int userPayCount = getOrderCountForLevel(user, level);
-        if (!UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED) {
-            return userPayCount >= orderCountThreshold;
-        }
+        return meetsUpgradeCondition(user, level, 0);
+    }
 
-        int consumptionThreshold = ObjectUtil.defaultIfNull(level.getExperience(), 0);
-        int userExperience = getConsumptionForLevel(user, level);
+    private boolean meetsUpgradeCondition(User user, SystemUserLevel level, int additionalConsumption) {
         Integer upgradeType = ObjectUtil.defaultIfNull(level.getUpgradeType(), UserLevelConstants.UPGRADE_TYPE_CONSUMPTION);
+        if (!UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED) {
+            upgradeType = UserLevelConstants.UPGRADE_TYPE_ORDER_COUNT;
+        }
 
         if (UserLevelConstants.UPGRADE_TYPE_ORDER_COUNT.equals(upgradeType)) {
-            return userPayCount >= orderCountThreshold;
+            int orderCountThreshold = ObjectUtil.defaultIfNull(level.getUpgradeValue(), 0);
+            return getOrderCountForLevel(user, level) >= orderCountThreshold;
         }
         if (UserLevelConstants.UPGRADE_TYPE_BOTH.equals(upgradeType)) {
-            return userExperience >= consumptionThreshold && userPayCount >= orderCountThreshold;
+            int consumptionThreshold = ObjectUtil.defaultIfNull(level.getExperience(), 0);
+            int orderCountThreshold = ObjectUtil.defaultIfNull(level.getUpgradeValue(), 0);
+            return getConsumptionForLevel(user, level, additionalConsumption) >= consumptionThreshold
+                    && getOrderCountForLevel(user, level) >= orderCountThreshold;
         }
-        return userExperience >= consumptionThreshold;
+        int consumptionThreshold = ObjectUtil.defaultIfNull(level.getExperience(), 0);
+        return getConsumptionForLevel(user, level, additionalConsumption) >= consumptionThreshold;
     }
 
     /**
      * 按等级配置的订单数统计时机获取有效订单数
      */
     private int getOrderCountForLevel(User user, SystemUserLevel level) {
+        if (!levelRequiresOrderCount(level)) {
+            return 0;
+        }
         Integer triggerType = ObjectUtil.defaultIfNull(level.getOrderCountTriggerType(),
                 UserLevelConstants.ORDER_COUNT_TRIGGER_PAID);
         if (UserLevelConstants.ORDER_COUNT_TRIGGER_COMPLETE.equals(triggerType)) {
@@ -312,26 +355,43 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
         return ObjectUtil.defaultIfNull(user.getPayCount(), 0);
     }
 
+    private boolean levelRequiresOrderCount(SystemUserLevel level) {
+        if (!UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED) {
+            return true;
+        }
+        Integer upgradeType = ObjectUtil.defaultIfNull(level.getUpgradeType(), UserLevelConstants.UPGRADE_TYPE_CONSUMPTION);
+        return UserLevelConstants.UPGRADE_TYPE_ORDER_COUNT.equals(upgradeType)
+                || UserLevelConstants.UPGRADE_TYPE_BOTH.equals(upgradeType);
+    }
+
     /**
-     * 按等级配置的消费金额统计时机获取有效消费经验
+     * 按等级配置的消费金额统计时机获取有效消费经验（1元=1经验）
      */
     private int getConsumptionForLevel(User user, SystemUserLevel level) {
+        return getConsumptionForLevel(user, level, 0);
+    }
+
+    private int getConsumptionForLevel(User user, SystemUserLevel level, int additionalConsumption) {
+        if (!levelRequiresConsumption(level)) {
+            return 0;
+        }
         Integer triggerType = ObjectUtil.defaultIfNull(level.getConsumptionTriggerType(),
                 UserLevelConstants.CONSUMPTION_TRIGGER_PAID);
         if (UserLevelConstants.CONSUMPTION_TRIGGER_COMPLETE.equals(triggerType)) {
-            return sumCompleteConsumptionByUid(user.getUid());
+            return ObjectUtil.defaultIfNull(userExperienceRecordService.sumCompleteConsumptionByUid(user.getUid()), 0);
         }
-        return ObjectUtil.defaultIfNull(user.getExperience(), 0);
+        int paidConsumption = ObjectUtil.defaultIfNull(
+                userExperienceRecordService.sumPaidConsumptionByUid(user.getUid()), 0) + additionalConsumption;
+        if (paidConsumption > 0) {
+            return paidConsumption;
+        }
+        return ObjectUtil.defaultIfNull(user.getExperience(), 0) + additionalConsumption;
     }
 
-    private int sumCompleteConsumptionByUid(Integer uid) {
-        LambdaQueryWrapper<UserExperienceRecord> lqw = Wrappers.lambdaQuery();
-        lqw.eq(UserExperienceRecord::getUid, uid);
-        lqw.eq(UserExperienceRecord::getLinkType, ExperienceRecordConstants.EXPERIENCE_RECORD_LINK_TYPE_ORDER);
-        lqw.eq(UserExperienceRecord::getType, ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_ADD);
-        lqw.eq(UserExperienceRecord::getTitle, ExperienceRecordConstants.EXPERIENCE_RECORD_TITLE_ORDER_COMPLETE);
-        List<UserExperienceRecord> recordList = userExperienceRecordService.list(lqw);
-        return recordList.stream().mapToInt(record -> ObjectUtil.defaultIfNull(record.getExperience(), 0)).sum();
+    private boolean levelRequiresConsumption(SystemUserLevel level) {
+        Integer upgradeType = ObjectUtil.defaultIfNull(level.getUpgradeType(), UserLevelConstants.UPGRADE_TYPE_CONSUMPTION);
+        return UserLevelConstants.UPGRADE_TYPE_CONSUMPTION.equals(upgradeType)
+                || UserLevelConstants.UPGRADE_TYPE_BOTH.equals(upgradeType);
     }
 
     /**

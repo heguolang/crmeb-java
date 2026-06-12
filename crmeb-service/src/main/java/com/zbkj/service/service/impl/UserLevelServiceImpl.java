@@ -97,12 +97,14 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
         }
 
         // 判断用户是否还在原等级
-        if (user.getLevel().equals(userLevelConfig.getId())) {
+        if (ObjectUtil.defaultIfNull(user.getLevel(), 0).equals(userLevelConfig.getId())) {
             return Boolean.TRUE;
         }
 
         // 判断用户等级经过向上调整
-        List<SystemUserLevel> collect = list.stream().filter(e -> e.getId().equals(user.getLevel())).collect(Collectors.toList());
+        List<SystemUserLevel> collect = list.stream()
+                .filter(e -> e.getId().equals(ObjectUtil.defaultIfNull(user.getLevel(), 0)))
+                .collect(Collectors.toList());
         if (CollUtil.isNotEmpty(collect)) {
             if (collect.get(0).getGrade() > userLevelConfig.getGrade()) {
                 return Boolean.TRUE;
@@ -132,7 +134,7 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
         }
 
         // 判断用户是否还在原等级
-        if (user.getLevel().equals(userLevelConfig.getId())) {
+        if (ObjectUtil.defaultIfNull(user.getLevel(), 0).equals(userLevelConfig.getId())) {
             return Boolean.TRUE;
         }
 
@@ -382,10 +384,11 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
         }
         int paidConsumption = ObjectUtil.defaultIfNull(
                 userExperienceRecordService.sumPaidConsumptionByUid(user.getUid()), 0) + additionalConsumption;
-        if (paidConsumption > 0) {
-            return paidConsumption;
+        int userExperience = ObjectUtil.defaultIfNull(user.getExperience(), 0);
+        if (paidConsumption <= 0) {
+            return userExperience;
         }
-        return ObjectUtil.defaultIfNull(user.getExperience(), 0) + additionalConsumption;
+        return Math.max(paidConsumption, userExperience);
     }
 
     private boolean levelRequiresConsumption(SystemUserLevel level) {

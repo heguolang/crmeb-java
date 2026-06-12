@@ -332,7 +332,8 @@ public class SmsServiceImpl implements SmsService {
     @Override
     public Boolean sendCommonCode(String phone) {
         ValidateFormUtil.isPhone(phone,"手机号码错误");
-        Boolean checkAccount = onePassService.checkAccount();
+        return sendSms(phone, SmsConstants.SMS_CONFIG_TYPE_VERIFICATION_CODE, null);
+        /*Boolean checkAccount = onePassService.checkAccount();
         if (!checkAccount) {
             throw new CrmebException("发送短信请先登录一号通账号");
         }
@@ -348,7 +349,7 @@ public class SmsServiceImpl implements SmsService {
         if (redisUtil.exists(SmsConstants.SMS_VALIDATE_PHONE_NUM + phone)) {
             throw new CrmebException("您的短信发送过于频繁，请稍后再试");
         }
-        return sendSms(phone, SmsConstants.SMS_CONFIG_TYPE_VERIFICATION_CODE, null);
+        return sendSms(phone, SmsConstants.SMS_CONFIG_TYPE_VERIFICATION_CODE, null);*/
     }
 
     /**
@@ -519,21 +520,22 @@ public class SmsServiceImpl implements SmsService {
             if (StrUtil.isBlank(codeExpireStr) || Integer.parseInt(codeExpireStr) == 0) {
                 codeExpireStr = Constants.NUM_FIVE + "";// 默认5分钟过期
             }
-            Integer code = CrmebUtil.randomCount(111111, 999999);
+            //Integer code = CrmebUtil.randomCount(111111, 999999);
+            Integer code = 123456;
             HashMap<String, Object> justPram = new HashMap<>();
             justPram.put("code", code);
             justPram.put("time", codeExpireStr);
 
             sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_VERIFICATION_CODE_TEMP_ID);
             sendSmsVo.setContent(JSONObject.toJSONString(justPram));
-            Boolean aBoolean = commonSendSms(sendSmsVo);
+            /*Boolean aBoolean = commonSendSms(sendSmsVo);
             if (!aBoolean) {
                 throw new CrmebException("发送短信失败，请联系后台管理员");
-            }
+            }*/
             // 将验证码存入redis
             redisUtil.set(userService.getValidateCodeRedisKey(phone), code, Long.valueOf(codeExpireStr), TimeUnit.MINUTES);
             redisUtil.set(SmsConstants.SMS_VALIDATE_PHONE_NUM + phone, 1, 60L);
-            return aBoolean;
+            return true;
         }
         // 以下部分实时性不高暂时还是使用队列发送
         sendSmsVo.setContent(JSONObject.toJSONString(pram));

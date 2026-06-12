@@ -24,6 +24,7 @@ import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -99,6 +100,10 @@ public class WeChatPayServiceImpl implements WeChatPayService {
 
     @Autowired
     private WechatPayInfoService wechatPayInfoService;
+
+    @Lazy
+    @Autowired
+    private OrderPayService orderPayService;
 
     /**
      * 查询支付结果
@@ -244,8 +249,8 @@ public class WeChatPayServiceImpl implements WeChatPayService {
             if (!updatePaid) {
                 throw new CrmebException("支付成功更新订单失败");
             }
-            // 添加支付成功task
-            redisUtil.lPush(TaskConstants.ORDER_TASK_PAY_SUCCESS_AFTER, orderNo);
+            // 支付成功后置：同步处理经验/升级/积分/佣金，队列兜底
+            orderPayService.triggerPaySuccessAfterPayment(storeOrder);
             return Boolean.TRUE;
         }
         // 充值订单

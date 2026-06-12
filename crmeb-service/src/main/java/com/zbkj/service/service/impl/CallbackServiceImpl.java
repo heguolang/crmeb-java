@@ -29,6 +29,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -87,6 +88,10 @@ public class CallbackServiceImpl implements CallbackService {
 
     @Autowired
     private WechatPayInfoService wechatPayInfoService;
+
+    @Lazy
+    @Autowired
+    private OrderPayService orderPayService;
 
     /**
      * 微信支付回调
@@ -246,7 +251,7 @@ public class CallbackServiceImpl implements CallbackService {
                     sb.append("</xml>");
                     return sb.toString();
                 }
-                redisUtil.lPush(TaskConstants.ORDER_TASK_PAY_SUCCESS_AFTER, storeOrder.getOrderId());
+                orderPayService.triggerPaySuccessAfterPayment(storeOrder);
             }
             // 充值
             if (Constants.SERVICE_PAY_TYPE_RECHARGE.equals(attachVo.getType())) {

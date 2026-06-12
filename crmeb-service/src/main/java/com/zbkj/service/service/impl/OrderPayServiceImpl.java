@@ -15,6 +15,7 @@ import com.zbkj.common.model.combination.StorePink;
 import com.zbkj.common.model.coupon.StoreCouponUser;
 import com.zbkj.common.model.order.StoreOrder;
 import com.zbkj.common.model.order.StoreOrderInfo;
+import com.zbkj.common.model.order.StoreOrderStatus;
 import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.product.StoreProductAttrValue;
 import com.zbkj.common.model.product.StoreProductCoupon;
@@ -199,6 +200,9 @@ public class OrderPayServiceImpl implements OrderPayService {
      */
     @Override
     public Boolean paySuccess(StoreOrder storeOrder) {
+        if (isPaySuccessProcessed(storeOrder.getId())) {
+            return Boolean.TRUE;
+        }
         User user = userService.getById(storeOrder.getUid());
 
         List<UserBill> billList = CollUtil.newArrayList();
@@ -219,7 +223,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         if (UserLevelConstants.EXPERIENCE_UPGRADE_ENABLED
                 && Boolean.TRUE.equals(systemUserLevelService.hasConsumptionTriggerOnPaid())) {
             Integer experience = storeOrder.getPayPrice().setScale(0, BigDecimal.ROUND_DOWN).intValue();
-            user.setExperience(user.getExperience() + experience);
+            user.setExperience(ObjectUtil.defaultIfNull(user.getExperience(), 0) + experience);
             experienceRecord = experienceRecordInit(storeOrder, user.getExperience(), experience);
         } else {
             experienceRecord = null;
@@ -227,7 +231,7 @@ public class OrderPayServiceImpl implements OrderPayService {
 
         // 更新用户下单数量：按配置在已付款或交易完成时计单
         if (Boolean.TRUE.equals(systemUserLevelService.hasOrderCountTriggerOnPaid())) {
-            user.setPayCount(user.getPayCount() + 1);
+            user.setPayCount(ObjectUtil.defaultIfNull(user.getPayCount(), 0) + 1);
         }
 
         // 积分处理：1.下单赠送积分，2.商品赠送积分，3.会员等级赠送积分
@@ -410,6 +414,26 @@ public class OrderPayServiceImpl implements OrderPayService {
             });
         }
         return true;
+    }
+
+    @Override
+    public void triggerPaySuccessAfterPayment(StoreOrder storeOrder) {
+        redisUtil.lPush(TaskConstants.ORDER_TASK_PAY_SUCCESS_AFTER, storeOrder.getOrderId());
+        try {
+            paySuccess(storeOrder);
+        } catch (Exception e) {
+            logger.error("支付成功后置处理同步执行失败，已保留队列重试，orderId={}", storeOrder.getOrderId(), e);
+        }
+    }
+
+    /**
+     * 是否已执行过支付成功后置（经验/升级/积分/佣金等）
+     */
+    private boolean isPaySuccessProcessed(Integer orderId) {
+        StoreOrderStatus query = new StoreOrderStatus();
+        query.setOid(orderId);
+        query.setChangeType(Constants.ORDER_LOG_PAY_SUCCESS);
+        return CollUtil.isNotEmpty(storeOrderStatusService.getByEntity(query));
     }
 
     /**
@@ -754,10 +778,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             if (storeOrder.getUseIntegral() > 0) {
                 userService.updateIntegral(user, storeOrder.getUseIntegral(), "sub");
             }
-            // 添加支付成功redis队列
-            redisUtil.lPush(TaskConstants.ORDER_TASK_PAY_SUCCESS_AFTER, storeOrder.getOrderId());
-
-            // 处理拼团
+            // 添加支付成功redis队列（事务外同步执行后置，队列仅作失败重试兜底）
             if (storeOrder.getCombinationId() > 0) {
                 // 判断拼团团长是否存在
                 StorePink headPink = new StorePink();
@@ -816,6 +837,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             return Boolean.TRUE;
         });
         if (!execute) throw new CrmebException("余额支付订单失败");
+        triggerPaySuccessAfterPayment(storeOrder);
         return execute;
     }
 

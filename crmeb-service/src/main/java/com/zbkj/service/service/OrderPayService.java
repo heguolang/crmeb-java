@@ -32,6 +32,12 @@ public interface OrderPayService{
     Boolean paySuccess(StoreOrder storeOrder);
 
     /**
+     * 支付成功后置：同步处理并写入 Redis 队列兜底
+     * @param storeOrder 订单
+     */
+    void triggerPaySuccessAfterPayment(StoreOrder storeOrder);
+
+    /**
      * 订单支付
      * @param orderPayRequest 支付参数
      * @param ip    ip

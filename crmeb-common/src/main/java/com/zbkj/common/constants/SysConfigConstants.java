@@ -47,6 +47,10 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_STORE_BROKERAGE_IS_BUBBLE = "store_brokerage_is_bubble";
     /** 判断是否分销消费门槛 */
     public static final String CONFIG_KEY_STORE_BROKERAGE_QUOTA = "store_brokerage_quota";
+    /** 是否启用团队极差奖 */
+    public static final String CONFIG_KEY_TEAM_BROKERAGE_STATUS = "team_brokerage_status";
+    /** 团队奖向上追溯层数，0=不限 */
+    public static final String CONFIG_KEY_TEAM_BROKERAGE_MAX_DEPTH = "team_brokerage_max_depth";
 
     /** 是否开启会员功能 */
     public static final String CONFIG_KEY_VIP_OPEN = "vip_open";

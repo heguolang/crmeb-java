@@ -120,6 +120,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
     private UserLevelService userLevelService;
 
     @Autowired
+    private UserTeamLevelService userTeamLevelService;
+
+    @Autowired
     private SystemUserLevelService systemUserLevelService;
 
     @Autowired
@@ -192,6 +195,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
         try{
             storeOrderStatusService.createLog(storeOrder.getId(), "check_order_over", "用户评价");
             userLevelService.processLevelOnOrderComplete(storeOrder);
+            userTeamLevelService.processTeamLevelOnOrderComplete(storeOrder);
             return true;
         }catch (Exception e){
             return false;
@@ -414,6 +418,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
             if (levelStatsChanged) {
                 userLevelService.downLevel(user);
             }
+
+            // 团队等级：退款回滚自购/团队金额并触发降级（如有）
+            userTeamLevelService.rollbackTeamLevelOnRefund(storeOrder);
 
             // 回滚库存
             Boolean rollbackStock = rollbackStock(storeOrder);

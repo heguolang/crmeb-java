@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zbkj.service.dao.UserTeamLevelDao">
+
+    <!-- 团队关联用户分页 -->
+    <select id="getTeamUserPage" resultType="com.zbkj.common.response.UserTeamLevelUserResponse">
+        SELECT
+            u.uid,
+            u.nickname,
+            u.phone,
+            u.avatar,
+            u.team_level AS teamLevelId,
+            stl.name      AS teamLevelName,
+            stl.grade     AS grade,
+            stat.self_paid_amount      AS selfPaidAmount,
+            stat.self_complete_amount  AS selfCompleteAmount,
+            stat.team_paid_amount      AS teamPaidAmount,
+            stat.team_complete_amount  AS teamCompleteAmount,
+            stat.update_time           AS updateTime
+        FROM eb_user u
+            LEFT JOIN eb_user_team_level_stat stat ON stat.uid = u.uid
+            LEFT JOIN eb_system_team_level stl ON stl.id = u.team_level
+        WHERE 1 = 1
+        <if test="keywords != null and keywords != ''">
+            AND (
+                u.uid = #{keywords}
+                OR u.nickname LIKE CONCAT('%', #{keywords}, '%')
+                OR u.phone LIKE CONCAT('%', #{keywords}, '%')
+            )
+        </if>
+        <if test="teamLevelId != null and teamLevelId &gt;= 0">
+            AND u.team_level = #{teamLevelId}
+        </if>
+        ORDER BY stat.update_time DESC, u.uid DESC
+    </select>
+
+    <!-- 团队等级变更记录分页 -->
+    <select id="getTeamRecordPage" resultType="com.zbkj.common.response.UserTeamLevelRecordResponse">
+        SELECT
+            utl.id,
+            utl.uid,
+            u.nickname,
+            u.phone,
+            utl.team_level_id AS teamLevelId,
+            stl.name          AS teamLevelName,
+            utl.grade,
+            CASE WHEN utl.status THEN 1 ELSE 0 END AS status,
+            utl.mark,
+            utl.create_time   AS createTime
+        FROM eb_user_team_level utl
+            LEFT JOIN eb_user u ON u.uid = utl.uid
+            LEFT JOIN eb_system_team_level stl ON stl.id = utl.team_level_id
+        WHERE utl.is_del = 0
+        <if test="keywords != null and keywords != ''">
+            AND (
+                utl.uid = #{keywords}
+                OR u.nickname LIKE CONCAT('%', #{keywords}, '%')
+                OR u.phone LIKE CONCAT('%', #{keywords}, '%')
+            )
+        </if>
+        <if test="teamLevelId != null and teamLevelId &gt; 0">
+            AND utl.team_level_id = #{teamLevelId}
+        </if>
+        <if test="status != null">
+            AND CASE WHEN utl.status THEN 1 ELSE 0 END = #{status}
+        </if>
+        ORDER BY utl.id DESC
+    </select>
+
+</mapper>
+

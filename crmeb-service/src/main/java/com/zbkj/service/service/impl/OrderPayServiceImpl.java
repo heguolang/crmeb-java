@@ -127,6 +127,9 @@ public class OrderPayServiceImpl implements OrderPayService {
     private UserLevelService userLevelService;
 
     @Autowired
+    private UserTeamLevelService userTeamLevelService;
+
+    @Autowired
     private SystemUserLevelService systemUserLevelService;
 
     @Autowired
@@ -316,6 +319,9 @@ public class OrderPayServiceImpl implements OrderPayService {
 
             //经验升级
             userLevelService.upLevel(user);
+
+            // 团队等级：按配置统计自购/团队金额（支付成功口径）并触发升级
+            userTeamLevelService.processTeamLevelOnOrderPaid(storeOrder);
 
             // 佣金记录
             if (CollUtil.isNotEmpty(recordList)) {

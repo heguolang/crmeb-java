@@ -38,38 +38,35 @@ if test -e $APP_NAME;then
   echo '文件存在,开始启动此程序...'
 
 # 启动jar包，指向日志文件，2>&1 & 表示打开或指向同一个日志文件  --spring.profiles.active=prod 启动 prod环境
-
-
-  nohup java -jar $APP_NAME $APP_YML  > crmeb_out.log 2>&1 &
+  cd "$APP_PATH" || exit 1
+  nohup java -jar "$APP_NAME" $APP_YML > "$LOG_FILE" 2>&1 &
   echo "正在发布中，请稍后......"
-  sleep 10s
+  sleep 5
 
-  #通过检测日志来判断
-  while [ -f $LOG_FILE ]
-  do
-      success=`grep "Started CrmebAdminApplication in " $LOG_FILE`
-      if [[ "$success" != "" ]]
-      then
-#          echo "Crmeb start ........."
-          break
-      else
-#          echo "Crmeb Running ......."
-          sleep 1s
+  # 通过检测日志判断是否启动成功（最多等待 120 秒）
+  waitSeconds=0
+  while [ $waitSeconds -lt 120 ]; do
+      if [ -f "$LOG_FILE" ]; then
+          success=`grep "Started CrmebAdminApplication in " "$LOG_FILE"`
+          if [[ "$success" != "" ]]; then
+              break
+          fi
+          fail=`grep -E "APPLICATION FAILED TO START|Fail" "$LOG_FILE"`
+          if [[ "$fail" != "" ]]; then
+              echo "项目启动失败"
+              tail -n 100 "$LOG_FILE"
+              exit 1
+          fi
       fi
-
-#      echo "开始检测启动失败标记"
-      fail=`grep "Fail" $LOG_FILE`
-      if [[ "$fail" != "" ]]
-      then
-          echo "项目启动失败"
-          tail -f $LOG_FILE
-          break
-      else
-#          echo "Crmeb Running ......."
-          sleep 1s
-      fi
-
+      sleep 1
+      waitSeconds=$((waitSeconds + 1))
   done
+
+  if [ $waitSeconds -ge 120 ]; then
+      echo "启动超时，请查看日志: $LOG_FILE"
+      tail -n 100 "$LOG_FILE"
+      exit 1
+  fi
   echo "Crmeb Started Success"
 
 endTime=`date +'%Y-%m-%d %H:%M:%S'`

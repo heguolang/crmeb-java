@@ -381,6 +381,9 @@ public class UserBrokerageRecordServiceImpl extends ServiceImpl<UserBrokerageRec
                     lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
                     lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
                     lqw.eq(UserBrokerageRecord::getType, BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+                    if (ObjectUtil.isNotNull(request.getBrokerageLevel())) {
+                        lqw.eq(UserBrokerageRecord::getBrokerageLevel, request.getBrokerageLevel());
+                    }
                     break;
                 case 2:// 申请提现
                     lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_WITHDRAW);

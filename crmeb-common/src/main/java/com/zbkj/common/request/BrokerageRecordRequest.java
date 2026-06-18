@@ -33,5 +33,7 @@ public class BrokerageRecordRequest implements Serializable {
     @Range(min = 1, max = 5, message = "未知的类型")
     private Integer type;
 
+    @ApiModelProperty(value = "佣金分级筛选（订单返佣时有效）：0自购 1一级 2二级 10团队极差 11团队平级")
+    private Integer brokerageLevel;
 
 }

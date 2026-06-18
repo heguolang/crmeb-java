@@ -130,6 +130,9 @@ public class OrderPayServiceImpl implements OrderPayService {
     private UserTeamLevelService userTeamLevelService;
 
     @Autowired
+    private TeamBrokerageService teamBrokerageService;
+
+    @Autowired
     private SystemUserLevelService systemUserLevelService;
 
     @Autowired
@@ -281,10 +284,11 @@ public class OrderPayServiceImpl implements OrderPayService {
         Integer brokerageLevelId = ObjectUtil.isNotNull(matchedBrokerageLevel) ? matchedBrokerageLevel.getId() : null;
 
         /**
-         * 计算佣金，生成佣金记录（自购/一级/二级比例取自购买者匹配等级的返佣配置）
+         * 计算佣金，生成佣金记录（自购比例取自购买者等级；一级/二级比例取自各级上级自己的会员等级返佣配置）
          */
-        List<UserBrokerageRecord> recordList = assignCommission(storeOrder, brokerageLevelId, matchedBrokerageLevel);
+        List<UserBrokerageRecord> recordList = assignCommission(storeOrder);
         recordList.addAll(assignSelfBrokerage(storeOrder, user, brokerageLevelId, matchedBrokerageLevel));
+        recordList.addAll(teamBrokerageService.assignTeamBrokerage(storeOrder));
 
         // 分销员逻辑
         if (!user.getIsPromoter()) {
@@ -488,13 +492,11 @@ public class OrderPayServiceImpl implements OrderPayService {
     }
 
     /**
-     * 分配佣金（一级/二级比例取自购买者本单匹配等级的返佣配置）
+     * 分配佣金（一级/二级比例取自各级上级自己匹配等级的返佣配置）
      * @param storeOrder 订单
-     * @param buyerLevelId 购买者本单支付后匹配的会员等级ID
      * @return List<UserBrokerageRecord>
      */
-    private List<UserBrokerageRecord> assignCommission(StoreOrder storeOrder, Integer buyerLevelId,
-                                                       SystemUserLevel matchedLevel) {
+    private List<UserBrokerageRecord> assignCommission(StoreOrder storeOrder) {
         // 检测商城是否开启分销功能
         String isOpen = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_IS_OPEN);
         if(StrUtil.isBlank(isOpen) || isOpen.equals("0")){
@@ -520,25 +522,32 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
         // 获取佣金冻结期
         String fronzenTime = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_EXTRACT_TIME);
-        String levelName = ObjectUtil.isNotNull(matchedLevel) ? matchedLevel.getName() : "";
 
         // 生成佣金记录
         List<UserBrokerageRecord> brokerageRecordList = spreadRecordList.stream().map(record -> {
             Integer index = record.getInt("index");
-            Integer levelRate = getLevelBrokerageRate(buyerLevelId, index);
-            BigDecimal brokerage = calculateCommission(record, storeOrder.getId(), buyerLevelId);
+            Integer spreadUid = record.getInt("spreadUid");
+            User spreadUser = userService.getById(spreadUid);
+            if (ObjectUtil.isNull(spreadUser)) {
+                return null;
+            }
+            SystemUserLevel spreadMatchedLevel = userLevelService.resolveMatchedLevel(spreadUser);
+            Integer spreadLevelId = ObjectUtil.isNotNull(spreadMatchedLevel) ? spreadMatchedLevel.getId() : null;
+            Integer levelRate = getLevelBrokerageRate(spreadLevelId, index);
+            BigDecimal brokerage = calculateCommission(record, storeOrder.getId());
             if (brokerage.compareTo(BigDecimal.ZERO) <= 0) {
                 return null;
             }
             UserBrokerageRecord brokerageRecord = new UserBrokerageRecord();
-            brokerageRecord.setUid(record.getInt("spreadUid"));
+            brokerageRecord.setUid(spreadUid);
             brokerageRecord.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
             brokerageRecord.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
             brokerageRecord.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_ORDER);
             brokerageRecord.setPrice(brokerage);
-            if (ObjectUtil.isNotNull(levelRate) && StrUtil.isNotBlank(levelName)) {
-                brokerageRecord.setMark(StrUtil.format("获得推广佣金，购买者等级{}，{}级返佣{}%，分佣{}",
-                        levelName, index, levelRate, brokerage));
+            String spreadLevelName = ObjectUtil.isNotNull(spreadMatchedLevel) ? spreadMatchedLevel.getName() : "";
+            if (ObjectUtil.isNotNull(levelRate) && StrUtil.isNotBlank(spreadLevelName)) {
+                brokerageRecord.setMark(StrUtil.format("获得推广佣金，您的等级{}，{}级返佣{}%，分佣{}",
+                        spreadLevelName, index, levelRate, brokerage));
             } else {
                 brokerageRecord.setMark(StrUtil.format("获得推广佣金，分佣{}", brokerage));
             }
@@ -590,76 +599,25 @@ public class OrderPayServiceImpl implements OrderPayService {
     }
 
     /**
-     * 计算佣金
+     * 计算推广佣金（按上级自己匹配等级的返佣配置，无配置时不回退全局比例）
      * @param record index-分销级数，spreadUid-分销人
      * @param orderId 订单id
-     * @param buyerLevelId 购买者本单匹配等级ID（用于读取该等级的一级/二级返佣比例）
      * @return BigDecimal
      */
-    private BigDecimal calculateCommission(MyRecord record, Integer orderId, Integer buyerLevelId) {
+    private BigDecimal calculateCommission(MyRecord record, Integer orderId) {
         Integer index = record.getInt("index");
-        Integer levelRate = getLevelBrokerageRate(buyerLevelId, index);
-        // 购买者已匹配等级且该等级有返佣配置：按配置比例计算（含配置为0的情况，不再走全局）
-        if (ObjectUtil.isNotNull(levelRate)) {
-            return calculateCommissionByRate(orderId, toRateDecimal(levelRate));
+        Integer spreadUid = record.getInt("spreadUid");
+        User spreadUser = userService.getById(spreadUid);
+        if (ObjectUtil.isNull(spreadUser)) {
+            return BigDecimal.ZERO;
         }
-
-        BigDecimal brokeragePrice = BigDecimal.ZERO;
-        // 查询订单详情
-        List<StoreOrderInfoOldVo> orderInfoVoList = storeOrderInfoService.getOrderListByOrderId(orderId);
-        if (CollUtil.isEmpty(orderInfoVoList)) {
-            return brokeragePrice;
+        SystemUserLevel spreadMatchedLevel = userLevelService.resolveMatchedLevel(spreadUser);
+        Integer spreadLevelId = ObjectUtil.isNotNull(spreadMatchedLevel) ? spreadMatchedLevel.getId() : null;
+        Integer levelRate = getLevelBrokerageRate(spreadLevelId, index);
+        if (ObjectUtil.isNull(levelRate)) {
+            return BigDecimal.ZERO;
         }
-        BigDecimal totalBrokerPrice = BigDecimal.ZERO;
-        //查询对应等级的分销比例
-        String key = "";
-        if (index == 1) {
-            key = Constants.CONFIG_KEY_STORE_BROKERAGE_RATE_ONE;
-        }
-        if (index == 2) {
-            key = Constants.CONFIG_KEY_STORE_BROKERAGE_RATE_TWO;
-        }
-        String rate = systemConfigService.getValueByKey(key);
-        if(StringUtils.isBlank(rate)){
-            rate = "1";
-        }
-        //佣金比例整数存储， 例如80， 所以计算的时候要除以 10*10
-        BigDecimal rateBigDecimal = brokeragePrice;
-        if(StringUtils.isNotBlank(rate)){
-            rateBigDecimal = new BigDecimal(rate).divide(BigDecimal.TEN.multiply(BigDecimal.TEN));
-        }
-
-        for (StoreOrderInfoOldVo orderInfoVo : orderInfoVoList) {
-            // 先看商品是否有固定分佣
-            StoreProductAttrValue attrValue = storeProductAttrValueService.getById(orderInfoVo.getInfo().getAttrValueId());
-            if (orderInfoVo.getInfo().getIsSub()) {// 有固定分佣
-                if(index == 1){
-                    brokeragePrice = Optional.ofNullable(attrValue.getBrokerage()).orElse(BigDecimal.ZERO);
-                }
-                if(index == 2){
-                    brokeragePrice = Optional.ofNullable(attrValue.getBrokerageTwo()).orElse(BigDecimal.ZERO);
-                }
-            } else {// 系统分佣
-                if(!rateBigDecimal.equals(BigDecimal.ZERO)){
-                    // 商品没有分销金额, 并且有设置对应等级的分佣比例
-                    // 舍入模式向零舍入。
-                    if (ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())) {
-                        brokeragePrice = orderInfoVo.getInfo().getVipPrice().multiply(rateBigDecimal).setScale(2, BigDecimal.ROUND_DOWN);
-                    } else {
-                        brokeragePrice = orderInfoVo.getInfo().getPrice().multiply(rateBigDecimal).setScale(2, BigDecimal.ROUND_DOWN);
-                    }
-                } else {
-                    brokeragePrice = BigDecimal.ZERO;
-                }
-            }
-            // 同规格商品可能有多件
-            if (brokeragePrice.compareTo(BigDecimal.ZERO) > 0 && orderInfoVo.getInfo().getPayNum() > 1) {
-                brokeragePrice = brokeragePrice.multiply(new BigDecimal(orderInfoVo.getInfo().getPayNum()));
-            }
-            totalBrokerPrice = totalBrokerPrice.add(brokeragePrice);
-        }
-
-        return totalBrokerPrice;
+        return calculateCommissionByRate(orderId, toRateDecimal(levelRate));
     }
 
     private BigDecimal calculateCommissionByRate(Integer orderId, BigDecimal rateBigDecimal) {

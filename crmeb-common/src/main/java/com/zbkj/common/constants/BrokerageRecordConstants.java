@@ -53,6 +53,18 @@ public class BrokerageRecordConstants {
     /** 分销等级—自购返佣 */
     public static final Integer BROKERAGE_LEVEL_SELF = 0;
 
+    /** 分销等级—团队极差奖 */
+    public static final Integer BROKERAGE_LEVEL_TEAM_DIFF = 10;
+
+    /** 分销等级—团队平级奖 */
+    public static final Integer BROKERAGE_LEVEL_TEAM_PEER = 11;
+
+    /** 佣金记录标题—团队极差奖 */
+    public static final String BROKERAGE_RECORD_TITLE_TEAM_DIFF = "获得团队极差奖";
+
+    /** 佣金记录标题—团队平级奖 */
+    public static final String BROKERAGE_RECORD_TITLE_TEAM_PEER = "获得团队平级奖";
+
     /** 佣金记录标题—提现申请 */
     public static final String BROKERAGE_RECORD_TITLE_WITHDRAW_APPLY = "提现申请";
 

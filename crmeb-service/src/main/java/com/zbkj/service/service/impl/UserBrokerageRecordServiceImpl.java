@@ -19,6 +19,7 @@ import com.zbkj.common.utils.ArrayUtil;
 import com.zbkj.common.utils.CrmebDateUtil;
 import com.zbkj.common.request.BrokerageRecordRequest;
 import com.zbkj.common.request.RetailShopStairUserRequest;
+import com.zbkj.common.request.TeamBrokerageRecordRequest;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.vo.DateLimitUtilVo;
@@ -34,8 +35,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 用户佣金记录服务接口实现类
@@ -159,6 +162,7 @@ public class UserBrokerageRecordServiceImpl extends ServiceImpl<UserBrokerageRec
     public PageInfo<SpreadCommissionDetailResponse> findDetailListByUid(Integer uid, PageParamRequest pageParamRequest) {
         Page<UserBrokerageRecord> recordPage = PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
         QueryWrapper<UserBrokerageRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("MAX(update_time) as update_time");
         queryWrapper.eq("uid", uid);
         queryWrapper.in("status", BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE
                 , BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_WITHDRAW);
@@ -415,6 +419,104 @@ public class UserBrokerageRecordServiceImpl extends ServiceImpl<UserBrokerageRec
     }
 
     /**
+     * 团队奖资金记录（后台）
+     */
+    @Override
+    public PageInfo<UserBrokerageRecord> getTeamBrokerageAdminList(TeamBrokerageRecordRequest request, PageParamRequest pageParamRequest) {
+        String keywords = StrUtil.trim(request.getKeywords());
+        List<Integer> keywordUidList = CollUtil.newArrayList();
+        if (StrUtil.isNotBlank(keywords)) {
+            keywordUidList = findUidListByKeywords(keywords);
+        }
+
+        Page<UserBrokerageRecord> page = PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        LambdaQueryWrapper<UserBrokerageRecord> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        lqw.eq(UserBrokerageRecord::getType, BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+        if (ObjectUtil.isNotNull(request.getBrokerageLevel())) {
+            lqw.eq(UserBrokerageRecord::getBrokerageLevel, request.getBrokerageLevel());
+        } else {
+            lqw.in(UserBrokerageRecord::getBrokerageLevel,
+                    BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF,
+                    BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER);
+        }
+        if (ObjectUtil.isNotNull(request.getStatus())) {
+            lqw.eq(UserBrokerageRecord::getStatus, request.getStatus());
+        }
+        if (StrUtil.isNotBlank(request.getDateLimit())) {
+            DateLimitUtilVo dateLimit = CrmebDateUtil.getDateLimit(request.getDateLimit());
+            lqw.between(UserBrokerageRecord::getUpdateTime, dateLimit.getStartTime(), dateLimit.getEndTime());
+        }
+        if (StrUtil.isNotBlank(keywords)) {
+            List<Integer> finalKeywordUidList = keywordUidList;
+            lqw.and(w -> {
+                w.like(UserBrokerageRecord::getLinkId, keywords)
+                        .or().like(UserBrokerageRecord::getMark, keywords);
+                if (CollUtil.isNotEmpty(finalKeywordUidList)) {
+                    w.or().in(UserBrokerageRecord::getUid, finalKeywordUidList);
+                }
+                if (StringUtils.isNumeric(keywords)) {
+                    w.or().eq(UserBrokerageRecord::getUid, Integer.valueOf(keywords));
+                }
+            });
+        }
+        lqw.orderByDesc(UserBrokerageRecord::getUpdateTime, UserBrokerageRecord::getId);
+        return CommonPage.copyPageInfo(page, dao.selectList(lqw));
+    }
+
+    /**
+     * 团队奖资金明细（用户端，按月分组）
+     */
+    @Override
+    public PageInfo<SpreadCommissionDetailResponse> findTeamDetailListByUid(Integer uid, PageParamRequest pageParamRequest) {
+        Page<UserBrokerageRecord> recordPage = PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        QueryWrapper<UserBrokerageRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("MAX(update_time) as update_time");
+        queryWrapper.eq("uid", uid);
+        queryWrapper.in("brokerage_level",
+                BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF,
+                BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER);
+        queryWrapper.in("status",
+                BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE,
+                BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_FROZEN,
+                BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+        queryWrapper.eq("link_type", BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        queryWrapper.groupBy("left(update_time, 7)");
+        queryWrapper.orderByDesc("left(update_time, 7)");
+        List<UserBrokerageRecord> list = dao.selectList(queryWrapper);
+        if (CollUtil.isEmpty(list)) {
+            return new PageInfo<>();
+        }
+        List<SpreadCommissionDetailResponse> responseList = CollUtil.newArrayList();
+        for (UserBrokerageRecord record : list) {
+            String month = CrmebDateUtil.dateToStr(record.getUpdateTime(), Constants.DATE_FORMAT_MONTH);
+            responseList.add(new SpreadCommissionDetailResponse(month, getTeamListByUidAndMonth(uid, month)));
+        }
+        return CommonPage.copyPageInfo(recordPage, responseList);
+    }
+
+    /**
+     * 用户累计团队奖金额（已完成）
+     */
+    @Override
+    public BigDecimal getTeamBrokerageTotalByUid(Integer uid) {
+        LambdaQueryWrapper<UserBrokerageRecord> lqw = new LambdaQueryWrapper<>();
+        lqw.select(UserBrokerageRecord::getPrice);
+        lqw.eq(UserBrokerageRecord::getUid, uid);
+        lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        lqw.eq(UserBrokerageRecord::getType, BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+        lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+        lqw.in(UserBrokerageRecord::getBrokerageLevel,
+                BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF,
+                BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER);
+        List<UserBrokerageRecord> list = dao.selectList(lqw);
+        if (CollUtil.isEmpty(list)) {
+            return BigDecimal.ZERO;
+        }
+        return list.stream().map(UserBrokerageRecord::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
      * 根据日期获取支付佣金金额（确认到账佣金）
      * @param date 日期，yyyy-MM-dd格式
      * @return BigDecimal
@@ -452,13 +554,45 @@ public class UserBrokerageRecordServiceImpl extends ServiceImpl<UserBrokerageRec
      */
     private List<UserBrokerageRecord> getListByUidAndMonth(Integer uid, String month) {
         QueryWrapper<UserBrokerageRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.select("id", "title", "price", "update_time", "type", "status");
+        queryWrapper.select("id", "title", "price", "update_time", "type", "status", "brokerage_level", "mark", "link_id");
         queryWrapper.eq("uid", uid);
         queryWrapper.in("status", BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE
                 , BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_WITHDRAW);
         queryWrapper.eq("left(update_time, 7)", month);
         queryWrapper.orderByDesc("update_time");
         return dao.selectList(queryWrapper);
+    }
+
+    /**
+     * 根据月份获取团队奖明细
+     */
+    private List<UserBrokerageRecord> getTeamListByUidAndMonth(Integer uid, String month) {
+        QueryWrapper<UserBrokerageRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("id", "title", "price", "update_time", "type", "status", "brokerage_level", "mark", "link_id");
+        queryWrapper.eq("uid", uid);
+        queryWrapper.eq("link_type", BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        queryWrapper.in("brokerage_level",
+                BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF,
+                BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER);
+        queryWrapper.in("status",
+                BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE,
+                BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_FROZEN,
+                BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+        queryWrapper.eq("left(update_time, 7)", month);
+        queryWrapper.orderByDesc("update_time");
+        return dao.selectList(queryWrapper);
+    }
+
+    private List<Integer> findUidListByKeywords(String keywords) {
+        LambdaQueryWrapper<User> userLqw = new LambdaQueryWrapper<>();
+        userLqw.select(User::getUid);
+        userLqw.and(i -> i.like(User::getNickname, keywords).or().like(User::getPhone, keywords));
+        userLqw.last("limit 200");
+        List<User> users = userService.list(userLqw);
+        if (CollUtil.isEmpty(users)) {
+            return Collections.emptyList();
+        }
+        return users.stream().map(User::getUid).collect(Collectors.toList());
     }
 
     /**

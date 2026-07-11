@@ -750,6 +750,24 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
     }
 
     /**
+     * 团队奖资金明细
+     */
+    @Override
+    public PageInfo<SpreadCommissionDetailResponse> getTeamCommissionDetail(PageParamRequest pageParamRequest) {
+        User user = userService.getInfoException();
+        return userBrokerageRecordService.findTeamDetailListByUid(user.getUid(), pageParamRequest);
+    }
+
+    /**
+     * 累计团队奖金额
+     */
+    @Override
+    public BigDecimal getTeamCommissionTotal() {
+        User user = userService.getInfoException();
+        return userBrokerageRecordService.getTeamBrokerageTotalByUid(user.getUid());
+    }
+
+    /**
      * 用户账单记录（现金）
      *
      * @param type 记录类型：all-全部，expenditure-支出，income-收入

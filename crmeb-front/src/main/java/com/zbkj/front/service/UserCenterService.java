@@ -160,6 +160,18 @@ public interface UserCenterService extends IService<User> {
     PageInfo<SpreadCommissionDetailResponse> getSpreadCommissionDetail(PageParamRequest pageParamRequest);
 
     /**
+     * 团队奖资金明细
+     * @param pageParamRequest 分页参数
+     */
+    PageInfo<SpreadCommissionDetailResponse> getTeamCommissionDetail(PageParamRequest pageParamRequest);
+
+    /**
+     * 累计团队奖金额
+     * @return BigDecimal
+     */
+    BigDecimal getTeamCommissionTotal();
+
+    /**
      * 用户账单记录（现金）
      * @param type 记录类型：all-全部，expenditure-支出，income-收入
      * @return CommonPage

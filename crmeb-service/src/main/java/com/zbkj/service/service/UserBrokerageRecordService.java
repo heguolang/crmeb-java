@@ -6,6 +6,7 @@ import com.zbkj.common.response.SpreadCommissionDetailResponse;
 import com.github.pagehelper.PageInfo;
 import com.zbkj.common.request.BrokerageRecordRequest;
 import com.zbkj.common.request.RetailShopStairUserRequest;
+import com.zbkj.common.request.TeamBrokerageRecordRequest;
 import com.zbkj.common.model.user.UserBrokerageRecord;
 
 import java.math.BigDecimal;
@@ -133,6 +134,29 @@ public interface UserBrokerageRecordService extends IService<UserBrokerageRecord
      * @return PageInfo
      */
     PageInfo<UserBrokerageRecord> getAdminList(BrokerageRecordRequest request, PageParamRequest pageParamRequest);
+
+    /**
+     * 团队奖资金记录（后台）
+     * @param request 筛选条件
+     * @param pageParamRequest 分页参数
+     * @return PageInfo
+     */
+    PageInfo<UserBrokerageRecord> getTeamBrokerageAdminList(TeamBrokerageRecordRequest request, PageParamRequest pageParamRequest);
+
+    /**
+     * 团队奖资金明细（用户端，按月分组）
+     * @param uid 用户uid
+     * @param pageParamRequest 分页参数
+     * @return PageInfo
+     */
+    PageInfo<SpreadCommissionDetailResponse> findTeamDetailListByUid(Integer uid, PageParamRequest pageParamRequest);
+
+    /**
+     * 用户累计团队奖金额（已完成）
+     * @param uid 用户uid
+     * @return BigDecimal
+     */
+    BigDecimal getTeamBrokerageTotalByUid(Integer uid);
 
     /**
      * 根据日期获取支付佣金金额（确认到账佣金）

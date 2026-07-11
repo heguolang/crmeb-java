@@ -130,6 +130,27 @@ public class UserController {
     }
 
     /**
+     * 团队奖资金明细
+     */
+    @ApiOperation(value = "团队奖资金明细")
+    @RequestMapping(value = "/spread/team/commission/detail", method = RequestMethod.GET)
+    public CommonResult<CommonPage<SpreadCommissionDetailResponse>> getTeamCommissionDetail(@Validated PageParamRequest pageParamRequest) {
+        PageInfo<SpreadCommissionDetailResponse> commissionDetail = userCenterService.getTeamCommissionDetail(pageParamRequest);
+        return CommonResult.success(CommonPage.restPage(commissionDetail));
+    }
+
+    /**
+     * 累计团队奖金额
+     */
+    @ApiOperation(value = "累计团队奖金额")
+    @RequestMapping(value = "/spread/team/commission/total", method = RequestMethod.GET)
+    public CommonResult<Map<String, BigDecimal>> getTeamCommissionTotal() {
+        Map<String, BigDecimal> map = new HashMap<>();
+        map.put("count", userCenterService.getTeamCommissionTotal());
+        return CommonResult.success(map);
+    }
+
+    /**
      * 推广佣金/提现总和
      */
     @ApiOperation(value = "推广佣金/提现总和")

@@ -104,6 +104,9 @@ public class UserResponse {
     @ApiModelProperty(value = "等级")
     private Integer level;
 
+    @ApiModelProperty(value = "团队等级ID")
+    private Integer teamLevel;
+
     @ApiModelProperty(value = "推广人id")
     private Integer spreadUid;
 

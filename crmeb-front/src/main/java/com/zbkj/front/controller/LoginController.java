@@ -3,6 +3,7 @@ package com.zbkj.front.controller;
 
 import com.zbkj.common.request.LoginMobileRequest;
 import com.zbkj.common.request.LoginRequest;
+import com.zbkj.common.request.RegisterRequest;
 import com.zbkj.common.response.LoginConfigResponse;
 import com.zbkj.common.response.LoginResponse;
 import com.zbkj.common.result.CommonResult;
@@ -61,6 +62,14 @@ public class LoginController {
         return CommonResult.success(loginService.login(loginRequest));
     }
 
+    /**
+     * 手机号注册
+     */
+    @ApiOperation(value = "手机号注册")
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
+    public CommonResult<LoginResponse> register(@RequestBody @Validated RegisterRequest registerRequest) {
+        return CommonResult.success(loginService.register(registerRequest));
+    }
 
     /**
      * 退出登录

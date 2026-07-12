@@ -8,6 +8,7 @@ import com.zbkj.common.response.TopDetail;
 import com.zbkj.common.response.UserResponse;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.UserService;
+import com.zbkj.service.service.UserTeamLevelService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -44,6 +45,9 @@ import java.util.List;
 public class UserController {
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserTeamLevelService userTeamLevelService;
 
     /**
      * 分页显示用户表
@@ -195,6 +199,19 @@ public class UserController {
     @RequestMapping(value = "/update/level", method = RequestMethod.POST)
     public CommonResult<Object> updateUserLevel(@Validated @RequestBody UpdateUserLevelRequest request) {
         if (userService.updateUserLevel(request)) {
+            return CommonResult.success("更新成功");
+        }
+        return CommonResult.failed("更新失败");
+    }
+
+    /**
+     * 更新用户团队等级
+     */
+    @PreAuthorize("hasAuthority('admin:user:update:level')")
+    @ApiOperation(value = "更新用户团队等级")
+    @RequestMapping(value = "/update/team/level", method = RequestMethod.POST)
+    public CommonResult<Object> updateUserTeamLevel(@Validated @RequestBody UpdateUserTeamLevelRequest request) {
+        if (userTeamLevelService.adminUpdateTeamLevel(request.getUid(), request.getTeamLevelId())) {
             return CommonResult.success("更新成功");
         }
         return CommonResult.failed("更新失败");

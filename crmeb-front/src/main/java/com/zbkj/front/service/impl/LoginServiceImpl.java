@@ -9,6 +9,7 @@ import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.request.LoginMobileRequest;
 import com.zbkj.common.request.LoginRequest;
+import com.zbkj.common.request.RegisterRequest;
 import com.zbkj.common.response.LoginConfigResponse;
 import com.zbkj.common.response.LoginResponse;
 import com.zbkj.common.token.FrontTokenComponent;
@@ -132,6 +133,34 @@ public class LoginServiceImpl implements LoginService {
         }
 
         //生成token
+        LoginResponse loginResponse = new LoginResponse();
+        String token = tokenComponent.createToken(user);
+        loginResponse.setToken(token);
+        loginResponse.setUid(user.getUid());
+        loginResponse.setNikeName(user.getNickname());
+        loginResponse.setPhone(user.getPhone());
+        return loginResponse;
+    }
+
+    /**
+     * 手机号注册（验证码+密码）
+     */
+    @Override
+    public LoginResponse register(RegisterRequest registerRequest) {
+        checkValidateCode(registerRequest.getPhone(), registerRequest.getCaptcha());
+        User existUser = userService.getByPhone(registerRequest.getPhone());
+        if (ObjectUtil.isNotNull(existUser)) {
+            throw new CrmebException("此手机号已注册");
+        }
+        Integer spreadPid = Optional.ofNullable(registerRequest.getSpreadPid()).orElse(0);
+        User user = userService.registerPhone(registerRequest.getPhone(), spreadPid);
+        user.setPwd(CrmebUtil.encryptPassword(registerRequest.getPassword(), registerRequest.getPhone()));
+        user.setUpdateTime(DateUtil.date());
+        user.setLastLoginTime(CrmebDateUtil.nowDateTime());
+        boolean updated = userService.updateById(user);
+        if (!updated) {
+            throw new CrmebException("注册失败，请稍后重试");
+        }
         LoginResponse loginResponse = new LoginResponse();
         String token = tokenComponent.createToken(user);
         loginResponse.setToken(token);

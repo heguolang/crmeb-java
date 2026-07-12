@@ -179,6 +179,49 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
     }
 
     @Override
+    public Boolean adminUpdateTeamLevel(Integer uid, Integer teamLevelId) {
+        if (ObjectUtil.isNull(uid) || ObjectUtil.isNull(teamLevelId)) {
+            throw new CrmebException("参数错误");
+        }
+        User user = userService.getById(uid);
+        if (ObjectUtil.isNull(user)) {
+            throw new CrmebException("用户不存在");
+        }
+        Integer currentLevelId = ObjectUtil.defaultIfNull(user.getTeamLevel(), 0);
+        if (currentLevelId.equals(teamLevelId)) {
+            throw new CrmebException("团队等级未变更");
+        }
+        SystemTeamLevel teamLevel = null;
+        if (teamLevelId > 0) {
+            teamLevel = systemTeamLevelService.getById(teamLevelId);
+            if (ObjectUtil.isNull(teamLevel) || Boolean.TRUE.equals(teamLevel.getIsDel())) {
+                throw new CrmebException("团队等级不存在");
+            }
+        }
+        SystemTeamLevel finalTeamLevel = teamLevel;
+        return transactionTemplate.execute(e -> {
+            User updateUser = new User();
+            updateUser.setUid(uid);
+            updateUser.setTeamLevel(teamLevelId);
+            updateUser.setUpdateTime(DateUtil.date());
+            userService.updateById(updateUser);
+
+            UserTeamLevel record = new UserTeamLevel();
+            record.setUid(uid);
+            record.setTeamLevelId(teamLevelId);
+            record.setGrade(ObjectUtil.isNull(finalTeamLevel) ? 0 : ObjectUtil.defaultIfNull(finalTeamLevel.getGrade(), 0));
+            record.setStatus(true);
+            record.setRemind(false);
+            record.setIsDel(false);
+            record.setMark(ObjectUtil.isNull(finalTeamLevel) ? "管理员清空团队等级" : "管理员调整团队等级：" + finalTeamLevel.getName());
+            record.setCreateTime(DateUtil.date());
+            record.setUpdateTime(DateUtil.date());
+            userTeamLevelDao.insert(record);
+            return Boolean.TRUE;
+        });
+    }
+
+    @Override
     public PageInfo<UserTeamLevelUserResponse> getTeamUserPage(String keywords, Integer teamLevelId, PageParamRequest pageParamRequest) {
         PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
         return new PageInfo<>(userTeamLevelDao.getTeamUserPage(keywords, teamLevelId));

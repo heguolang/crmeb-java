@@ -43,6 +43,11 @@ public interface UserTeamLevelService extends IService<UserTeamLevel> {
     Boolean syncTeamLevels(List<Integer> uids);
 
     /**
+     * 管理员手动修改用户团队等级
+     */
+    Boolean adminUpdateTeamLevel(Integer uid, Integer teamLevelId);
+
+    /**
      * 团队关联用户分页
      */
     PageInfo<UserTeamLevelUserResponse> getTeamUserPage(String keywords, Integer teamLevelId, PageParamRequest pageParamRequest);

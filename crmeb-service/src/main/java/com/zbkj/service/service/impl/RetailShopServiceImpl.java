@@ -2,6 +2,7 @@ package com.zbkj.service.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -135,6 +136,11 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
         response.setStoreBrokerageRatio(Integer.parseInt(systemConfigService.getValueByKey("store_brokerage_ratio")));
         response.setStoreBrokerageTwo(Integer.parseInt(systemConfigService.getValueByKey("store_brokerage_two")));
         response.setUserExtractMinPrice(new BigDecimal(systemConfigService.getValueByKey("user_extract_min_price")));
+        String extractFee = systemConfigService.getValueByKey("user_extract_fee");
+        if (StrUtil.isBlank(extractFee)) {
+            extractFee = "0";
+        }
+        response.setUserExtractFee(new BigDecimal(extractFee));
         response.setUserExtractBank(systemConfigService.getValueByKey("user_extract_bank").replace("\\n","\n"));
         response.setExtractTime(Integer.parseInt(systemConfigService.getValueByKey("extract_time")));
         response.setStoreBrokerageQuota(Integer.parseInt(systemConfigService.getValueByKey("store_brokerage_quota")));
@@ -158,6 +164,11 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
         systemConfigService.updateOrSaveValueByName("store_brokerage_ratio", retailShopRequest.getStoreBrokerageRatio().toString());
         systemConfigService.updateOrSaveValueByName("store_brokerage_two", retailShopRequest.getStoreBrokerageTwo().toString());
         systemConfigService.updateOrSaveValueByName("user_extract_min_price", retailShopRequest.getUserExtractMinPrice().toString());
+        BigDecimal fee = ObjectUtil.isNull(retailShopRequest.getUserExtractFee()) ? BigDecimal.ZERO : retailShopRequest.getUserExtractFee();
+        if (fee.compareTo(BigDecimal.ZERO) < 0) {
+            throw new CrmebException("提现手续费不能小于0");
+        }
+        systemConfigService.updateOrSaveValueByName("user_extract_fee", fee.toString());
         systemConfigService.updateOrSaveValueByName("user_extract_bank", retailShopRequest.getUserExtractBank());
         systemConfigService.updateOrSaveValueByName("extract_time", retailShopRequest.getExtractTime().toString());
         systemConfigService.updateOrSaveValueByName("brokerage_bindind", retailShopRequest.getBrokerageBindind().toString());

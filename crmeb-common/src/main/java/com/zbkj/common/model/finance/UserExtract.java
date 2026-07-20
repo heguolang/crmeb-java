@@ -60,6 +60,12 @@ public class UserExtract implements Serializable {
     @ApiModelProperty(value = "提现金额")
     private BigDecimal extractPrice;
 
+    @ApiModelProperty(value = "提现手续费")
+    private BigDecimal extractFee;
+
+    @ApiModelProperty(value = "实际到账金额")
+    private BigDecimal arrivePrice;
+
     @ApiModelProperty(value = "备注")
     private String mark;
 

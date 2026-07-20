@@ -172,6 +172,7 @@ public class Constants {
     public static final String CONFIG_BANK_LIST = "user_extract_bank"; //可提现银行
     public static final String CONFIG_EXTRACT_FREEZING_TIME = "extract_time"; //提现冻结时间
     public static final String CONFIG_EXTRACT_MIN_PRICE = "user_extract_min_price"; //提现最低金额
+    public static final String CONFIG_EXTRACT_FEE = "user_extract_fee"; //提现手续费（固定金额）
     public static final String CONFIG_RECHARGE_ATTENTION = "recharge_attention"; //充值注意事项
 
     public static final String CONFIG_KEY_PAY_WE_CHAT_APP_ID = "pay_weixin_appid"; //公众号appId

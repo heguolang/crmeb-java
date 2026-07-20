@@ -383,6 +383,17 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
             throw new CrmebException(StrUtil.format("最低提现金额{}元", ten));
         }
 
+        // 提现手续费（固定金额）
+        String feeStr = systemConfigService.getValueByKey(Constants.CONFIG_EXTRACT_FEE);
+        BigDecimal extractFee = StrUtil.isBlank(feeStr) ? ZERO : new BigDecimal(feeStr.trim());
+        if (extractFee.compareTo(ZERO) < 0) {
+            extractFee = ZERO;
+        }
+        if (request.getExtractPrice().compareTo(extractFee) <= 0) {
+            throw new CrmebException(StrUtil.format("提现金额必须大于手续费{}元", extractFee));
+        }
+        BigDecimal arrivePrice = request.getExtractPrice().subtract(extractFee);
+
         User user = userService.getInfo();
         if (ObjectUtil.isNull(user)) {
             throw new CrmebException("提现用户信息异常");
@@ -399,6 +410,8 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
         UserExtract userExtract = new UserExtract();
         BeanUtils.copyProperties(request, userExtract);
         userExtract.setUid(user.getUid());
+        userExtract.setExtractFee(extractFee);
+        userExtract.setArrivePrice(arrivePrice);
         userExtract.setBalance(money.subtract(request.getExtractPrice()));
         //存入银行名称
         if (StrUtil.isNotBlank(userExtract.getQrcodeUrl())) {
@@ -413,7 +426,7 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
         brokerageRecord.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_WITHDRAW_APPLY);
         brokerageRecord.setPrice(userExtract.getExtractPrice());
         brokerageRecord.setBalance(money.subtract(userExtract.getExtractPrice()));
-        brokerageRecord.setMark(StrUtil.format("提现申请扣除佣金{}", userExtract.getExtractPrice()));
+        brokerageRecord.setMark(StrUtil.format("提现申请扣除佣金{}，手续费{}，实到{}", userExtract.getExtractPrice(), extractFee, arrivePrice));
         brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_WITHDRAW);
         brokerageRecord.setCreateTime(CrmebDateUtil.nowDateTime());
 

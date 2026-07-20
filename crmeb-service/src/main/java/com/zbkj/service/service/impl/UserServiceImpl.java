@@ -895,6 +895,40 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
+     * 添加/扣减消费券
+     */
+    @Override
+    public Boolean operationVoucher(Integer uid, BigDecimal voucher, BigDecimal nowVoucher, String type) {
+        UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
+        if (type.equals("add")) {
+            updateWrapper.setSql(StrUtil.format("consume_voucher = consume_voucher + {}", voucher));
+        } else {
+            updateWrapper.setSql(StrUtil.format("consume_voucher = consume_voucher - {}", voucher));
+            updateWrapper.last(StrUtil.format(" and (consume_voucher - {} >= 0)", voucher));
+        }
+        updateWrapper.eq("uid", uid);
+        updateWrapper.eq("consume_voucher", nowVoucher);
+        return update(updateWrapper);
+    }
+
+    /**
+     * 添加/扣减权证
+     */
+    @Override
+    public Boolean operationWarrant(Integer uid, BigDecimal warrant, BigDecimal nowWarrant, String type) {
+        UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
+        if (type.equals("add")) {
+            updateWrapper.setSql(StrUtil.format("warrant = warrant + {}", warrant));
+        } else {
+            updateWrapper.setSql(StrUtil.format("warrant = warrant - {}", warrant));
+            updateWrapper.last(StrUtil.format(" and (warrant - {} >= 0)", warrant));
+        }
+        updateWrapper.eq("uid", uid);
+        updateWrapper.eq("warrant", nowWarrant);
+        return update(updateWrapper);
+    }
+
+    /**
      * PC后台分销员列表
      *
      * @param keywords             搜索参数

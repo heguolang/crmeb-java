@@ -218,6 +218,24 @@ public interface UserService extends IService<User> {
     Boolean operationIntegral(Integer uid, Integer integral, Integer nowIntegral, String type);
 
     /**
+     * 添加/扣减消费券
+     * @param uid 用户id
+     * @param voucher 消费券
+     * @param nowVoucher 历史消费券
+     * @param type 类型：add—添加，sub—扣减
+     */
+    Boolean operationVoucher(Integer uid, BigDecimal voucher, BigDecimal nowVoucher, String type);
+
+    /**
+     * 添加/扣减权证
+     * @param uid 用户id
+     * @param warrant 权证
+     * @param nowWarrant 历史权证
+     * @param type 类型：add—添加，sub—扣减
+     */
+    Boolean operationWarrant(Integer uid, BigDecimal warrant, BigDecimal nowWarrant, String type);
+
+    /**
      * PC后台分销员列表
      * @param keywords 搜索参数
      * @param dateLimit 时间参数

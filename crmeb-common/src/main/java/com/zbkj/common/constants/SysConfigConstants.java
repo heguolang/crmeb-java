@@ -66,6 +66,8 @@ public class SysConfigConstants {
     public static final String CONFIG_EXTRACT_MIN_PRICE = "user_extract_min_price";
     /** 提现冻结时间 */
     public static final String CONFIG_EXTRACT_FREEZING_TIME = "extract_time";
+    /** 提现手续费（固定金额，元） */
+    public static final String CONFIG_EXTRACT_FEE = "user_extract_fee";
 
     /** 全场满额包邮开关 */
     public static final String STORE_FEE_POSTAGE_SWITCH = "store_free_postage_switch";
@@ -75,6 +77,19 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_INTEGRAL_RATE = "integral_ratio";
     /** 下单支付金额按比例赠送积分（实际支付1元赠送多少积分) */
     public static final String CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE = "order_give_integral";
+
+    /** 多少积分 = 1 消费券 */
+    public static final String CONFIG_KEY_INTEGRAL_TO_VOUCHER_RATIO = "integral_to_voucher_ratio";
+    /** 每日强制释放当前积分的百分比 */
+    public static final String CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO = "integral_daily_release_ratio";
+    /** 多少消费券 = 1 元余额 */
+    public static final String CONFIG_KEY_VOUCHER_TO_BALANCE_RATIO = "voucher_to_balance_ratio";
+    /** 兑 1 权证所需消费券 */
+    public static final String CONFIG_KEY_WARRANT_NEED_VOUCHER = "warrant_need_voucher";
+    /** 兑 1 权证所需积分 */
+    public static final String CONFIG_KEY_WARRANT_NEED_INTEGRAL = "warrant_need_integral";
+    /** 消费券权证功能开关：0关闭 1开启 */
+    public static final String CONFIG_KEY_VOUCHER_WARRANT_SWITCH = "voucher_warrant_switch";
 
     /** 微信支付开关 */
     public static final String CONFIG_PAY_WEIXIN_OPEN  = "pay_weixin_open";

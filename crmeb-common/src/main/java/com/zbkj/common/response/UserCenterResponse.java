@@ -50,6 +50,18 @@ public class UserCenterResponse implements Serializable {
     @ApiModelProperty(value = "用户剩余积分")
     private Integer integral;
 
+    @ApiModelProperty(value = "消费券")
+    private BigDecimal consumeVoucher;
+
+    @ApiModelProperty(value = "权证")
+    private BigDecimal warrant;
+
+    @ApiModelProperty(value = "权证第三方地址")
+    private String warrantAddress;
+
+    @ApiModelProperty(value = "权证地址最近绑定时间")
+    private java.util.Date warrantAddressTime;
+
     @ApiModelProperty(value = "用户剩余经验")
     private Integer experience;
 

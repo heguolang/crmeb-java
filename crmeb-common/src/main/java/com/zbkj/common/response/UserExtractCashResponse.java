@@ -35,6 +35,14 @@ public class UserExtractCashResponse implements Serializable {
         this.brokenDay = brokenDay;
     }
 
+    public UserExtractCashResponse(String minPrice, BigDecimal commissionCount, BigDecimal brokenCommission, String brokenDay, String extractFee) {
+        this.minPrice = minPrice;
+        this.commissionCount = commissionCount;
+        this.brokenCommission = brokenCommission;
+        this.brokenDay = brokenDay;
+        this.extractFee = extractFee;
+    }
+
     private static final long serialVersionUID=1L;
 
 //    @ApiModelProperty(value = "提现银行")
@@ -42,6 +50,9 @@ public class UserExtractCashResponse implements Serializable {
 
     @ApiModelProperty(value = "提现最低金额")
     private String minPrice;
+
+    @ApiModelProperty(value = "提现手续费（固定金额）")
+    private String extractFee;
 
     @ApiModelProperty(value = "可提现佣金")
     private BigDecimal commissionCount;

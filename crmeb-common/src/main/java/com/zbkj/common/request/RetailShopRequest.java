@@ -60,6 +60,11 @@ public class RetailShopRequest {
     @DecimalMin(value = "0", message = "用户提现最低金额最小为0")
     private BigDecimal userExtractMinPrice;
 
+    @ApiModelProperty(value = "提现手续费（固定金额，元）")
+    @NotNull(message = "提现手续费 不能为空")
+    @DecimalMin(value = "0", message = "提现手续费最小为0")
+    private BigDecimal userExtractFee;
+
     @ApiModelProperty(value = "提现银行")
     @NotNull(message = "提现银行 不能为空")
     private String userExtractBank;

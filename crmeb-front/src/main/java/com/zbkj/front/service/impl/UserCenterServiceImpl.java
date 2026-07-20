@@ -1033,13 +1033,18 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         User user = userService.getInfoException();
         // 提现最低金额
         String minPrice = systemConfigService.getValueByKeyException(SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE);
+        // 提现手续费
+        String extractFee = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FEE);
+        if (StrUtil.isBlank(extractFee)) {
+            extractFee = "0";
+        }
         // 冻结天数
         String extractTime = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FREEZING_TIME);
         // 可提现佣金
         BigDecimal brokeragePrice = user.getBrokeragePrice();
         // 冻结佣金
         BigDecimal freeze = userBrokerageRecordService.getFreezePrice(user.getUid());
-        return new UserExtractCashResponse(minPrice, brokeragePrice, freeze, extractTime);
+        return new UserExtractCashResponse(minPrice, brokeragePrice, freeze, extractTime, extractFee);
     }
 
     /**

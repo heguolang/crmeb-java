@@ -13,6 +13,8 @@ public class WarrantRecordConstants {
     public static final String LINK_TYPE_EXCHANGE = "exchange";
     public static final String LINK_TYPE_SYSTEM = "system";
 
-    public static final String TITLE_EXCHANGE = "消费券积分兑换权证";
+    public static final String TITLE_EXCHANGE = "兑换权证";
+    public static final String TITLE_EXCHANGE_INTEGRAL = "积分兑换权证";
+    public static final String TITLE_EXCHANGE_VOUCHER = "消费券兑换权证";
     public static final String TITLE_SYSTEM = "后台权证操作";
 }

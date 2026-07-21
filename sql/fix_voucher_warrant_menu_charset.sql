@@ -19,8 +19,8 @@ WHERE `component` = '/marketing/voucherWarrant/warrantLog' AND `menu_type` = 'C'
 UPDATE `eb_system_config` SET `title` = '多少积分=1消费券' WHERE `name` = 'integral_to_voucher_ratio';
 UPDATE `eb_system_config` SET `title` = '每日强制释放当前积分的百分比' WHERE `name` = 'integral_daily_release_ratio';
 UPDATE `eb_system_config` SET `title` = '多少消费券=1元余额' WHERE `name` = 'voucher_to_balance_ratio';
-UPDATE `eb_system_config` SET `title` = '兑1权证所需消费券' WHERE `name` = 'warrant_need_voucher';
-UPDATE `eb_system_config` SET `title` = '兑1权证所需积分' WHERE `name` = 'warrant_need_integral';
+UPDATE `eb_system_config` SET `title` = '多少消费券=1权证（单独兑换）' WHERE `name` = 'warrant_need_voucher';
+UPDATE `eb_system_config` SET `title` = '多少积分=1权证（单独兑换）' WHERE `name` = 'warrant_need_integral';
 UPDATE `eb_system_config` SET `title` = '消费券权证功能开关：0=关闭，1=开启' WHERE `name` = 'voucher_warrant_switch';
 
 UPDATE `eb_schedule_job` SET `remark` = '每日积分强制释放到消费券'

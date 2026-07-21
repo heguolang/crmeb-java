@@ -67,12 +67,12 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'voucher_to_balance_ratio');
 
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
-SELECT 'warrant_need_voucher', '5', '兑1权证所需消费券', 0
+SELECT 'warrant_need_voucher', '5', '多少消费券=1权证（单独兑换）', 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'warrant_need_voucher');
 
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
-SELECT 'warrant_need_integral', '100', '兑1权证所需积分', 0
+SELECT 'warrant_need_integral', '100', '多少积分=1权证（单独兑换）', 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'warrant_need_integral');
 

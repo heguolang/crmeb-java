@@ -178,37 +178,104 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
     @Override
     public Boolean exchangeWarrant(ExchangeWarrantRequest request) {
         checkSwitchOn();
-        User user = userService.getInfoException();
-        int quantity = request.getQuantity();
-        BigDecimal needVoucherUnit = getDecimalConfig(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_VOUCHER, "5");
-        int needIntegralUnit = getIntConfig(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_INTEGRAL, 100);
-        if (needVoucherUnit.compareTo(BigDecimal.ZERO) <= 0 || needIntegralUnit <= 0) {
-            throw new CrmebException("权证兑换比例未正确配置");
+        String payType = StrUtil.trim(request.getPayType()).toLowerCase();
+        if (!"integral".equals(payType) && !"voucher".equals(payType)) {
+            throw new CrmebException("兑换方式仅支持积分或消费券");
         }
-        BigDecimal needVoucher = needVoucherUnit.multiply(BigDecimal.valueOf(quantity));
-        int needIntegral = needIntegralUnit * quantity;
-        BigDecimal warrantAmount = BigDecimal.valueOf(quantity);
+        if ("integral".equals(payType)) {
+            return exchangeWarrantByIntegral(request.getAmount());
+        }
+        return exchangeWarrantByVoucher(request.getAmount());
+    }
 
-        if (nullToZero(user.getConsumeVoucher()).compareTo(needVoucher) < 0) {
-            throw new CrmebException("消费券不足");
+    private Boolean exchangeWarrantByIntegral(BigDecimal amount) {
+        User user = userService.getInfoException();
+        int ratio = getIntConfig(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_INTEGRAL, 100);
+        if (ratio <= 0) {
+            throw new CrmebException("积分兑权证比例未正确配置");
         }
-        if (user.getIntegral() < needIntegral) {
+        int useIntegral = amount.setScale(0, RoundingMode.DOWN).intValue();
+        if (useIntegral < ratio) {
+            throw new CrmebException(StrUtil.format("兑换积分数至少为{}", ratio));
+        }
+        int times = useIntegral / ratio;
+        int realIntegral = times * ratio;
+        BigDecimal warrantAmount = BigDecimal.valueOf(times);
+        if (user.getIntegral() < realIntegral) {
             throw new CrmebException("积分不足");
         }
 
         Boolean execute = transactionTemplate.execute(e -> {
             User fresh = userService.getById(user.getUid());
-            if (nullToZero(fresh.getConsumeVoucher()).compareTo(needVoucher) < 0) {
-                throw new CrmebException("消费券不足");
-            }
-            if (fresh.getIntegral() < needIntegral) {
+            if (fresh.getIntegral() < realIntegral) {
                 throw new CrmebException("积分不足");
             }
-            if (!userService.operationVoucher(fresh.getUid(), needVoucher, nullToZero(fresh.getConsumeVoucher()), "sub")) {
-                throw new CrmebException("扣减消费券失败");
-            }
-            if (!userService.operationIntegral(fresh.getUid(), needIntegral, fresh.getIntegral(), "sub")) {
+            if (!userService.operationIntegral(fresh.getUid(), realIntegral, fresh.getIntegral(), "sub")) {
                 throw new CrmebException("扣减积分失败");
+            }
+            if (!userService.operationWarrant(fresh.getUid(), warrantAmount, nullToZero(fresh.getWarrant()), "add")) {
+                throw new CrmebException("增加权证失败");
+            }
+
+            Date now = CrmebDateUtil.nowDateTime();
+            UserIntegralRecord integralRecord = new UserIntegralRecord();
+            integralRecord.setUid(fresh.getUid());
+            integralRecord.setLinkId("0");
+            integralRecord.setLinkType(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_SYSTEM);
+            integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB);
+            integralRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_INTEGRAL);
+            integralRecord.setIntegral(realIntegral);
+            integralRecord.setBalance(fresh.getIntegral() - realIntegral);
+            integralRecord.setMark(StrUtil.format("积分{}兑换权证{}", realIntegral, warrantAmount));
+            integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
+            integralRecord.setCreateTime(now);
+            integralRecord.setUpdateTime(now);
+            userIntegralRecordService.save(integralRecord);
+
+            UserWarrantRecord warrantRecord = new UserWarrantRecord();
+            warrantRecord.setUid(fresh.getUid());
+            warrantRecord.setLinkId("0");
+            warrantRecord.setLinkType(WarrantRecordConstants.LINK_TYPE_EXCHANGE);
+            warrantRecord.setType(WarrantRecordConstants.TYPE_ADD);
+            warrantRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_INTEGRAL);
+            warrantRecord.setWarrant(warrantAmount);
+            warrantRecord.setBalance(nullToZero(fresh.getWarrant()).add(warrantAmount));
+            warrantRecord.setMark(StrUtil.format("消耗积分{}兑换权证{}", realIntegral, warrantAmount));
+            warrantRecord.setStatus(WarrantRecordConstants.STATUS_COMPLETE);
+            warrantRecord.setCreateTime(now);
+            warrantRecord.setUpdateTime(now);
+            userWarrantRecordService.save(warrantRecord);
+            return Boolean.TRUE;
+        });
+        if (!Boolean.TRUE.equals(execute)) {
+            throw new CrmebException("积分兑换权证失败");
+        }
+        return true;
+    }
+
+    private Boolean exchangeWarrantByVoucher(BigDecimal amount) {
+        User user = userService.getInfoException();
+        BigDecimal ratio = getDecimalConfig(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_VOUCHER, "5");
+        if (ratio.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new CrmebException("消费券兑权证比例未正确配置");
+        }
+        if (nullToZero(user.getConsumeVoucher()).compareTo(amount) < 0) {
+            throw new CrmebException("消费券不足");
+        }
+        BigDecimal times = amount.divide(ratio, 0, RoundingMode.DOWN);
+        if (times.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new CrmebException(StrUtil.format("兑换消费券至少为{}", ratio));
+        }
+        BigDecimal realVoucher = times.multiply(ratio);
+        BigDecimal warrantAmount = times;
+
+        Boolean execute = transactionTemplate.execute(e -> {
+            User fresh = userService.getById(user.getUid());
+            if (nullToZero(fresh.getConsumeVoucher()).compareTo(realVoucher) < 0) {
+                throw new CrmebException("消费券不足");
+            }
+            if (!userService.operationVoucher(fresh.getUid(), realVoucher, nullToZero(fresh.getConsumeVoucher()), "sub")) {
+                throw new CrmebException("扣减消费券失败");
             }
             if (!userService.operationWarrant(fresh.getUid(), warrantAmount, nullToZero(fresh.getWarrant()), "add")) {
                 throw new CrmebException("增加权证失败");
@@ -220,38 +287,24 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             voucherRecord.setLinkId("0");
             voucherRecord.setLinkType(VoucherRecordConstants.LINK_TYPE_TO_WARRANT);
             voucherRecord.setType(VoucherRecordConstants.TYPE_SUB);
-            voucherRecord.setTitle(VoucherRecordConstants.TITLE_TO_WARRANT);
-            voucherRecord.setVoucher(needVoucher);
-            voucherRecord.setBalance(nullToZero(fresh.getConsumeVoucher()).subtract(needVoucher));
-            voucherRecord.setMark(StrUtil.format("兑换{}权证扣减消费券{}", warrantAmount, needVoucher));
+            voucherRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_VOUCHER);
+            voucherRecord.setVoucher(realVoucher);
+            voucherRecord.setBalance(nullToZero(fresh.getConsumeVoucher()).subtract(realVoucher));
+            voucherRecord.setMark(StrUtil.format("消费券{}兑换权证{}", realVoucher, warrantAmount));
             voucherRecord.setStatus(VoucherRecordConstants.STATUS_COMPLETE);
             voucherRecord.setCreateTime(now);
             voucherRecord.setUpdateTime(now);
             userVoucherRecordService.save(voucherRecord);
-
-            UserIntegralRecord integralRecord = new UserIntegralRecord();
-            integralRecord.setUid(fresh.getUid());
-            integralRecord.setLinkId("0");
-            integralRecord.setLinkType(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_SYSTEM);
-            integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB);
-            integralRecord.setTitle("兑换权证扣减积分");
-            integralRecord.setIntegral(needIntegral);
-            integralRecord.setBalance(fresh.getIntegral() - needIntegral);
-            integralRecord.setMark(StrUtil.format("兑换{}权证扣减积分{}", warrantAmount, needIntegral));
-            integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
-            integralRecord.setCreateTime(now);
-            integralRecord.setUpdateTime(now);
-            userIntegralRecordService.save(integralRecord);
 
             UserWarrantRecord warrantRecord = new UserWarrantRecord();
             warrantRecord.setUid(fresh.getUid());
             warrantRecord.setLinkId("0");
             warrantRecord.setLinkType(WarrantRecordConstants.LINK_TYPE_EXCHANGE);
             warrantRecord.setType(WarrantRecordConstants.TYPE_ADD);
-            warrantRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE);
+            warrantRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_VOUCHER);
             warrantRecord.setWarrant(warrantAmount);
             warrantRecord.setBalance(nullToZero(fresh.getWarrant()).add(warrantAmount));
-            warrantRecord.setMark(StrUtil.format("消耗消费券{}、积分{}兑换权证{}", needVoucher, needIntegral, warrantAmount));
+            warrantRecord.setMark(StrUtil.format("消耗消费券{}兑换权证{}", realVoucher, warrantAmount));
             warrantRecord.setStatus(WarrantRecordConstants.STATUS_COMPLETE);
             warrantRecord.setCreateTime(now);
             warrantRecord.setUpdateTime(now);
@@ -259,7 +312,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             return Boolean.TRUE;
         });
         if (!Boolean.TRUE.equals(execute)) {
-            throw new CrmebException("兑换权证失败");
+            throw new CrmebException("消费券兑换权证失败");
         }
         return true;
     }
@@ -360,8 +413,8 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         validatePositiveNumber(request.getIntegralToVoucherRatio(), "积分兑换消费券比例");
         validatePercent(request.getIntegralDailyReleaseRatio(), "每日释放百分比");
         validatePositiveNumber(request.getVoucherToBalanceRatio(), "消费券兑换余额比例");
-        validatePositiveNumber(request.getWarrantNeedVoucher(), "兑权证所需消费券");
-        validatePositiveNumber(request.getWarrantNeedIntegral(), "兑权证所需积分");
+        validatePositiveNumber(request.getWarrantNeedVoucher(), "消费券兑1权证所需数量");
+        validatePositiveNumber(request.getWarrantNeedIntegral(), "积分兑1权证所需数量");
 
         if (StrUtil.isNotBlank(request.getIntegralToVoucherRatio())) {
             systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_INTEGRAL_TO_VOUCHER_RATIO, request.getIntegralToVoucherRatio().trim());

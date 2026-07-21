@@ -354,6 +354,8 @@ public class Constants {
     public static final String USER_BILL_TYPE_DEDUCTION = "deduction"; //抵扣
     public static final String USER_BILL_TYPE_EXTRACT = "extract"; //提现
     public static final String USER_BILL_TYPE_TRANSFER_IN = "transferIn"; //佣金转入余额
+    public static final String USER_BILL_TYPE_USER_TRANSFER_OUT = "user_transfer_out"; //余额转出给用户
+    public static final String USER_BILL_TYPE_USER_TRANSFER_IN = "user_transfer_in"; //收到用户余额转入
     public static final String USER_BILL_TYPE_GAIN = "gain"; //购买商品赠送
     public static final String USER_BILL_TYPE_PAY_MONEY = "pay_money"; //购买
     public static final String USER_BILL_TYPE_PAY_PRODUCT = "pay_product"; //购买商品

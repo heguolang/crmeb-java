@@ -61,4 +61,7 @@ public class UserExtractCashResponse implements Serializable {
 
     @ApiModelProperty(value = "冻结天数（仅佣金提现有意义）")
     private String brokenDay;
+
+    @ApiModelProperty(value = "提现支持方式，逗号分隔：bank,weixin,alipay")
+    private String extractType;
 }

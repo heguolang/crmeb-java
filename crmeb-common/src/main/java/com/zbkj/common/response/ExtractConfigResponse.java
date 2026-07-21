@@ -51,4 +51,7 @@ public class ExtractConfigResponse implements Serializable {
 
     @ApiModelProperty(value = "提现银行卡列表，换行分隔")
     private String userExtractBank;
+
+    @ApiModelProperty(value = "提现支持方式，逗号分隔：bank,weixin,alipay")
+    private String userExtractType;
 }

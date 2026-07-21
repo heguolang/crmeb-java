@@ -38,6 +38,8 @@ public class ExtractConfigServiceImpl implements ExtractConfigService {
         response.setBalanceExtractMultiple(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_BALANCE_EXTRACT_MULTIPLE), "0"));
         String bank = systemConfigService.getValueByKey(Constants.CONFIG_BANK_LIST);
         response.setUserExtractBank(StrUtil.isBlank(bank) ? "" : bank.replace("\\n", "\n"));
+        response.setUserExtractType(ExtractFeeUtil.normalizeExtractTypes(
+                systemConfigService.getValueByKey(SysConfigConstants.CONFIG_USER_EXTRACT_TYPE)));
         return response;
     }
 
@@ -51,6 +53,24 @@ public class ExtractConfigServiceImpl implements ExtractConfigService {
         validateMinPrice(request.getBalanceExtractMinPrice(), "余额最低提现金额");
         validateFee(balFeeType, request.getBalanceExtractFee(), "余额手续费");
         validateMultiple(request.getBalanceExtractMultiple(), "余额提现倍数");
+        if (StrUtil.isBlank(request.getUserExtractType())) {
+            throw new CrmebException("请至少勾选一种提现支持账户");
+        }
+        String extractTypes = ExtractFeeUtil.normalizeExtractTypes(request.getUserExtractType());
+        // 全部非法值时 normalize 会回退默认，需再核对原始勾选
+        boolean hasValid = false;
+        for (String part : request.getUserExtractType().split(",")) {
+            String t = StrUtil.trim(part).toLowerCase();
+            if (SysConfigConstants.EXTRACT_TYPE_BANK.equals(t)
+                    || SysConfigConstants.EXTRACT_TYPE_WEIXIN.equals(t)
+                    || SysConfigConstants.EXTRACT_TYPE_ALIPAY.equals(t)) {
+                hasValid = true;
+                break;
+            }
+        }
+        if (!hasValid) {
+            throw new CrmebException("请至少勾选一种提现支持账户");
+        }
 
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_BROKERAGE_EXTRACT_SWITCH, switchVal(request.getBrokerageExtractSwitch()));
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE, request.getBrokerageExtractMinPrice().trim());
@@ -62,6 +82,7 @@ public class ExtractConfigServiceImpl implements ExtractConfigService {
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE_TYPE, balFeeType);
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE, request.getBalanceExtractFee().trim());
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_BALANCE_EXTRACT_MULTIPLE, request.getBalanceExtractMultiple().trim());
+        systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_USER_EXTRACT_TYPE, extractTypes);
         if (request.getUserExtractBank() != null) {
             systemConfigService.updateOrSaveValueByName(Constants.CONFIG_BANK_LIST, request.getUserExtractBank());
         }

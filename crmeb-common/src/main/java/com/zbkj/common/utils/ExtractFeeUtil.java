@@ -91,4 +91,43 @@ public class ExtractFeeUtil {
         }
         return null;
     }
+
+    /**
+     * 规范化提现支持方式，默认三种全开
+     */
+    public static String normalizeExtractTypes(String config) {
+        if (StrUtil.isBlank(config)) {
+            return "bank,weixin,alipay";
+        }
+        java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
+        for (String part : config.split(",")) {
+            if (StrUtil.isBlank(part)) {
+                continue;
+            }
+            String t = part.trim().toLowerCase();
+            if (SysConfigConstants.EXTRACT_TYPE_BANK.equals(t)
+                    || SysConfigConstants.EXTRACT_TYPE_WEIXIN.equals(t)
+                    || SysConfigConstants.EXTRACT_TYPE_ALIPAY.equals(t)) {
+                set.add(t);
+            }
+        }
+        if (set.isEmpty()) {
+            return "bank,weixin,alipay";
+        }
+        return String.join(",", set);
+    }
+
+    public static boolean isExtractTypeEnabled(String config, String extractType) {
+        if (StrUtil.isBlank(extractType)) {
+            return false;
+        }
+        String normalized = normalizeExtractTypes(config);
+        String type = extractType.trim().toLowerCase();
+        for (String part : normalized.split(",")) {
+            if (type.equals(part.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

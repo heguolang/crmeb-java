@@ -12,7 +12,7 @@ SET @sql_voucher := IF(@exist_voucher = 0, 'ALTER TABLE `eb_user` ADD COLUMN `co
 PREPARE stmt FROM @sql_voucher; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @exist_warrant := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eb_user' AND COLUMN_NAME = 'warrant');
-SET @sql_warrant := IF(@exist_warrant = 0, 'ALTER TABLE `eb_user` ADD COLUMN `warrant` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT ''权证（仅展示）'' AFTER `consume_voucher`', 'SELECT 1');
+SET @sql_warrant := IF(@exist_warrant = 0, 'ALTER TABLE `eb_user` ADD COLUMN `warrant` decimal(12,3) NOT NULL DEFAULT 0.000 COMMENT ''权证（支持到0.001）'' AFTER `consume_voucher`', 'SELECT 1');
 PREPARE stmt FROM @sql_warrant; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS `eb_user_voucher_record` (
@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS `eb_user_warrant_record` (
     `link_type` varchar(32) NOT NULL DEFAULT '' COMMENT '关联类型：exchange/system',
     `type` tinyint(1) NOT NULL DEFAULT 1 COMMENT '类型：1-增加，2-扣减',
     `title` varchar(64) NOT NULL DEFAULT '' COMMENT '标题',
-    `warrant` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '变动权证',
-    `balance` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '剩余权证',
+    `warrant` decimal(12,3) NOT NULL DEFAULT 0.000 COMMENT '变动权证',
+    `balance` decimal(12,3) NOT NULL DEFAULT 0.000 COMMENT '剩余权证',
     `mark` varchar(255) NOT NULL DEFAULT '' COMMENT '备注',
     `status` tinyint(1) NOT NULL DEFAULT 3 COMMENT '状态：3-完成',
     `create_time` datetime DEFAULT NULL COMMENT '添加时间',

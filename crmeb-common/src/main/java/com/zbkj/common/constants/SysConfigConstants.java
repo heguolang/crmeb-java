@@ -84,6 +84,15 @@ public class SysConfigConstants {
     public static final String CONFIG_EXTRACT_MULTIPLE = "user_extract_multiple";
     /** 余额提现倍数：0不限制 */
     public static final String CONFIG_BALANCE_EXTRACT_MULTIPLE = "balance_extract_multiple";
+    /** 提现支持方式，逗号分隔：bank,weixin,alipay */
+    public static final String CONFIG_USER_EXTRACT_TYPE = "user_extract_type";
+
+    /** 提现方式：银行卡 */
+    public static final String EXTRACT_TYPE_BANK = "bank";
+    /** 提现方式：微信 */
+    public static final String EXTRACT_TYPE_WEIXIN = "weixin";
+    /** 提现方式：支付宝 */
+    public static final String EXTRACT_TYPE_ALIPAY = "alipay";
 
     /** 提现来源：佣金 */
     public static final String EXTRACT_SOURCE_BROKERAGE = "brokerage";

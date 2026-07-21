@@ -169,6 +169,11 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
      */
     @Override
     public Boolean extractCash(UserExtractRequest request) {
+        String enabledTypes = ExtractFeeUtil.normalizeExtractTypes(
+                systemConfigService.getValueByKey(SysConfigConstants.CONFIG_USER_EXTRACT_TYPE));
+        if (!ExtractFeeUtil.isExtractTypeEnabled(enabledTypes, request.getExtractType())) {
+            throw new CrmebException("该提现方式未开启");
+        }
         switch (request.getExtractType()) {
             case "weixin":
                 if (StrUtil.isBlank(request.getWechat())) {
@@ -1063,6 +1068,8 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
             response.setCommissionCount(user.getNowMoney());
             response.setBrokenCommission(BigDecimal.ZERO);
             response.setBrokenDay("0");
+            response.setExtractType(ExtractFeeUtil.normalizeExtractTypes(
+                    systemConfigService.getValueByKey(SysConfigConstants.CONFIG_USER_EXTRACT_TYPE)));
             return response;
         }
 
@@ -1089,6 +1096,8 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         response.setCommissionCount(user.getBrokeragePrice());
         response.setBrokenCommission(userBrokerageRecordService.getFreezePrice(user.getUid()));
         response.setBrokenDay(extractTime);
+        response.setExtractType(ExtractFeeUtil.normalizeExtractTypes(
+                systemConfigService.getValueByKey(SysConfigConstants.CONFIG_USER_EXTRACT_TYPE)));
         return response;
     }
 

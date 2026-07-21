@@ -224,11 +224,22 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      */
     @Override
     public Boolean updateIntegralMoney(UserOperateIntegralMoneyRequest request) {
-        if (ObjectUtil.isNull(request.getMoneyValue()) || ObjectUtil.isNull(request.getIntegralValue())) {
-            throw new CrmebException("至少输入一个金额");
+        if (ObjectUtil.isNull(request.getMoneyValue())) {
+            request.setMoneyValue(BigDecimal.ZERO);
         }
-        if (request.getMoneyValue().compareTo(BigDecimal.ZERO) < 1 && request.getIntegralValue() <= 0) {
-            throw new CrmebException("修改值不能小于等于0");
+        if (ObjectUtil.isNull(request.getIntegralValue())) {
+            request.setIntegralValue(0);
+        }
+        if (ObjectUtil.isNull(request.getBrokerageValue())) {
+            request.setBrokerageValue(BigDecimal.ZERO);
+        }
+        if (ObjectUtil.isNull(request.getBrokerageType())) {
+            request.setBrokerageType(1);
+        }
+        if (request.getMoneyValue().compareTo(BigDecimal.ZERO) < 1
+                && request.getIntegralValue() <= 0
+                && request.getBrokerageValue().compareTo(BigDecimal.ZERO) < 1) {
+            throw new CrmebException("至少输入一个金额");
         }
 
         User user = getById(request.getUid());
@@ -255,6 +266,18 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         if (request.getIntegralType().equals(1) && request.getIntegralValue() != 0) {
             if ((user.getIntegral() + request.getIntegralValue()) > 99999999) {
                 throw new CrmebException("积分添加后不能大于99999999");
+            }
+        }
+
+        BigDecimal brokeragePrice = ObjectUtil.isNull(user.getBrokeragePrice()) ? BigDecimal.ZERO : user.getBrokeragePrice();
+        if (request.getBrokerageType().equals(2) && request.getBrokerageValue().compareTo(BigDecimal.ZERO) > 0) {
+            if (brokeragePrice.subtract(request.getBrokerageValue()).compareTo(BigDecimal.ZERO) < 0) {
+                throw new CrmebException("佣金扣减后不能小于0");
+            }
+        }
+        if (request.getBrokerageType().equals(1) && request.getBrokerageValue().compareTo(BigDecimal.ZERO) > 0) {
+            if (brokeragePrice.add(request.getBrokerageValue()).compareTo(new BigDecimal("99999999.99")) > 0) {
+                throw new CrmebException("佣金添加后不能大于99999999.99");
             }
         }
 
@@ -313,11 +336,36 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
                 }
                 userIntegralRecordService.save(integralRecord);
             }
+
+            // 处理佣金
+            if (request.getBrokerageValue().compareTo(BigDecimal.ZERO) > 0) {
+                UserBrokerageRecord brokerageRecord = new UserBrokerageRecord();
+                brokerageRecord.setUid(user.getUid());
+                brokerageRecord.setLinkId("0");
+                brokerageRecord.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_SYSTEM);
+                brokerageRecord.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_SYSTEM);
+                brokerageRecord.setPrice(request.getBrokerageValue());
+                brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+                brokerageRecord.setCreateTime(CrmebDateUtil.nowDateTime());
+                brokerageRecord.setUpdateTime(CrmebDateUtil.nowDateTime());
+                if (request.getBrokerageType() == 1) {
+                    brokerageRecord.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+                    brokerageRecord.setBalance(brokeragePrice.add(request.getBrokerageValue()));
+                    brokerageRecord.setMark(StrUtil.format("后台操作增加了{}佣金", request.getBrokerageValue()));
+                    operationBrokerage(user.getUid(), request.getBrokerageValue(), brokeragePrice, "add");
+                } else {
+                    brokerageRecord.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_SUB);
+                    brokerageRecord.setBalance(brokeragePrice.subtract(request.getBrokerageValue()));
+                    brokerageRecord.setMark(StrUtil.format("后台操作减少了{}佣金", request.getBrokerageValue()));
+                    operationBrokerage(user.getUid(), request.getBrokerageValue(), brokeragePrice, "sub");
+                }
+                userBrokerageRecordService.save(brokerageRecord);
+            }
             return Boolean.TRUE;
         });
 
         if (!execute) {
-            throw new CrmebException("修改积分/余额失败");
+            throw new CrmebException("修改积分/余额/佣金失败");
         }
         return execute;
     }

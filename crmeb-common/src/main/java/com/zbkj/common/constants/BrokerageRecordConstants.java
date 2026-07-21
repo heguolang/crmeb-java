@@ -44,6 +44,9 @@ public class BrokerageRecordConstants {
     /** 佣金记录关联类型—转余额 */
     public static final String BROKERAGE_RECORD_LINK_TYPE_YUE = "yue";
 
+    /** 佣金记录关联类型—后台操作 */
+    public static final String BROKERAGE_RECORD_LINK_TYPE_SYSTEM = "system";
+
     /** 佣金记录标题—订单获得佣金 */
     public static final String BROKERAGE_RECORD_TITLE_ORDER = "获得推广佣金";
 
@@ -71,6 +74,9 @@ public class BrokerageRecordConstants {
     /** 佣金记录标题—提现拒绝 */
     public static final String BROKERAGE_RECORD_TITLE_WITHDRAW_FAIL = "提现申请拒绝";
 
-    /** 佣金记录标题—提现拒绝 */
+    /** 佣金记录标题—佣金转余额 */
     public static final String BROKERAGE_RECORD_TITLE_BROKERAGE_YUE = "佣金转余额";
+
+    /** 佣金记录标题—后台操作 */
+    public static final String BROKERAGE_RECORD_TITLE_SYSTEM = "后台操作";
 }

@@ -139,7 +139,7 @@ public class UserController {
      * 操作积分
      */
     @PreAuthorize("hasAuthority('admin:user:operate:founds')")
-    @ApiOperation(value = "积分余额")
+    @ApiOperation(value = "积分余额佣金")
     @RequestMapping(value = "/operate/founds", method = RequestMethod.GET)
     public CommonResult<Object> founds(@Validated UserOperateIntegralMoneyRequest request) {
         if (userService.updateIntegralMoney(request)) {

@@ -48,7 +48,7 @@ public class VoucherWarrantController {
         return CommonResult.success(voucherWarrantService.voucherToBalance(request));
     }
 
-    @ApiOperation(value = "积分或消费券单独兑换权证")
+    @ApiOperation(value = "积分或消费券兑换权证（需一并提交地址）")
     @RequestMapping(value = "/to/warrant", method = RequestMethod.POST)
     public CommonResult<Boolean> exchangeWarrant(@RequestBody @Validated ExchangeWarrantRequest request) {
         return CommonResult.success(voucherWarrantService.exchangeWarrant(request));

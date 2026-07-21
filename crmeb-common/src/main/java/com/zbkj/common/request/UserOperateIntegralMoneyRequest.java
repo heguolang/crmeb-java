@@ -56,4 +56,14 @@ public class UserOperateIntegralMoneyRequest implements Serializable {
     @DecimalMax(value = "999999.99")
     private BigDecimal moneyValue;
 
+    @ApiModelProperty(value = "佣金类型， 1 = 增加， 2 = 减少")
+    @NotNull
+    @Range(min = 1, max = 2, message = "请选择正确的类型， 【1 = 增加， 2 = 减少】")
+    private Integer brokerageType;
+
+    @ApiModelProperty(value = "佣金")
+    @DecimalMin(value = "0.00")
+    @DecimalMax(value = "999999.99")
+    private BigDecimal brokerageValue;
+
 }

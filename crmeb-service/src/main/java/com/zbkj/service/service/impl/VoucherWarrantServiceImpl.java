@@ -59,6 +59,9 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
     private UserBillService userBillService;
 
     @Autowired
+    private UserWarrantExchangeService userWarrantExchangeService;
+
+    @Autowired
     private TransactionTemplate transactionTemplate;
 
     @Override
@@ -182,13 +185,14 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         if (!"integral".equals(payType) && !"voucher".equals(payType)) {
             throw new CrmebException("兑换方式仅支持积分或消费券");
         }
+        String address = normalizeWarrantAddress(request.getAddress());
         if ("integral".equals(payType)) {
-            return exchangeWarrantByIntegral(request.getAmount());
+            return exchangeWarrantByIntegral(request.getAmount(), address);
         }
-        return exchangeWarrantByVoucher(request.getAmount());
+        return exchangeWarrantByVoucher(request.getAmount(), address);
     }
 
-    private Boolean exchangeWarrantByIntegral(BigDecimal amount) {
+    private Boolean exchangeWarrantByIntegral(BigDecimal amount, String address) {
         User user = userService.getInfoException();
         int ratio = getIntConfig(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_INTEGRAL, 100);
         if (ratio <= 0) {
@@ -216,6 +220,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             if (!userService.operationWarrant(fresh.getUid(), warrantAmount, nullToZero(fresh.getWarrant()), "add")) {
                 throw new CrmebException("增加权证失败");
             }
+            saveWarrantAddress(fresh.getUid(), address);
 
             Date now = CrmebDateUtil.nowDateTime();
             UserIntegralRecord integralRecord = new UserIntegralRecord();
@@ -240,11 +245,13 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             warrantRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_INTEGRAL);
             warrantRecord.setWarrant(warrantAmount);
             warrantRecord.setBalance(nullToZero(fresh.getWarrant()).add(warrantAmount));
-            warrantRecord.setMark(StrUtil.format("消耗积分{}兑换权证{}", realIntegral, warrantAmount));
+            warrantRecord.setMark(StrUtil.format("消耗积分{}兑换权证{}，地址{}", realIntegral, warrantAmount, address));
             warrantRecord.setStatus(WarrantRecordConstants.STATUS_COMPLETE);
             warrantRecord.setCreateTime(now);
             warrantRecord.setUpdateTime(now);
             userWarrantRecordService.save(warrantRecord);
+            userWarrantExchangeService.createApply(fresh.getUid(), "integral",
+                    BigDecimal.valueOf(realIntegral), warrantAmount, address);
             return Boolean.TRUE;
         });
         if (!Boolean.TRUE.equals(execute)) {
@@ -253,7 +260,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         return true;
     }
 
-    private Boolean exchangeWarrantByVoucher(BigDecimal amount) {
+    private Boolean exchangeWarrantByVoucher(BigDecimal amount, String address) {
         User user = userService.getInfoException();
         BigDecimal ratio = getDecimalConfig(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_VOUCHER, "5");
         if (ratio.compareTo(BigDecimal.ZERO) <= 0) {
@@ -280,6 +287,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             if (!userService.operationWarrant(fresh.getUid(), warrantAmount, nullToZero(fresh.getWarrant()), "add")) {
                 throw new CrmebException("增加权证失败");
             }
+            saveWarrantAddress(fresh.getUid(), address);
 
             Date now = CrmebDateUtil.nowDateTime();
             UserVoucherRecord voucherRecord = new UserVoucherRecord();
@@ -304,11 +312,13 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             warrantRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_VOUCHER);
             warrantRecord.setWarrant(warrantAmount);
             warrantRecord.setBalance(nullToZero(fresh.getWarrant()).add(warrantAmount));
-            warrantRecord.setMark(StrUtil.format("消耗消费券{}兑换权证{}", realVoucher, warrantAmount));
+            warrantRecord.setMark(StrUtil.format("消耗消费券{}兑换权证{}，地址{}", realVoucher, warrantAmount, address));
             warrantRecord.setStatus(WarrantRecordConstants.STATUS_COMPLETE);
             warrantRecord.setCreateTime(now);
             warrantRecord.setUpdateTime(now);
             userWarrantRecordService.save(warrantRecord);
+            userWarrantExchangeService.createApply(fresh.getUid(), "voucher",
+                    realVoucher, warrantAmount, address);
             return Boolean.TRUE;
         });
         if (!Boolean.TRUE.equals(execute)) {
@@ -510,16 +520,25 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
     @Override
     public Boolean bindWarrantAddress(WarrantAddressRequest request) {
         checkSwitchOn();
-        String address = StrUtil.trim(request.getAddress());
+        String address = normalizeWarrantAddress(request.getAddress());
+        User user = userService.getInfoException();
+        return saveWarrantAddress(user.getUid(), address);
+    }
+
+    private String normalizeWarrantAddress(String raw) {
+        String address = StrUtil.trim(raw);
         if (StrUtil.isBlank(address)) {
             throw new CrmebException("地址不能为空");
         }
         if (address.length() > 255) {
             throw new CrmebException("地址长度不能超过255");
         }
-        User user = userService.getInfoException();
+        return address;
+    }
+
+    private Boolean saveWarrantAddress(Integer uid, String address) {
         User update = new User();
-        update.setUid(user.getUid());
+        update.setUid(uid);
         update.setWarrantAddress(address);
         update.setWarrantAddressTime(CrmebDateUtil.nowDateTime());
         update.setUpdateTime(CrmebDateUtil.nowDateTime());

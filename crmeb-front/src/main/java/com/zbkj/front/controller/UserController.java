@@ -185,8 +185,8 @@ public class UserController {
      */
     @ApiOperation(value = "提现用户信息")
     @RequestMapping(value = "/extract/user", method = RequestMethod.GET)
-    public CommonResult<UserExtractCashResponse> getExtractUser() {
-        return CommonResult.success(userCenterService.getExtractUser());
+    public CommonResult<UserExtractCashResponse> getExtractUser(@RequestParam(value = "source", required = false, defaultValue = "brokerage") String source) {
+        return CommonResult.success(userCenterService.getExtractUser(source));
     }
 
     /**

@@ -42,6 +42,9 @@ public class UserExtract implements Serializable {
 
     private Integer uid;
 
+    @ApiModelProperty(value = "提现来源 brokerage=佣金 balance=余额")
+    private String extractSource;
+
     @ApiModelProperty(value = "名称")
     private String realName;
 

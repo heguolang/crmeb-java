@@ -36,6 +36,9 @@ public class UserExtractSearchRequest implements Serializable {
     @ApiModelProperty(value = "bank = 银行卡 alipay = 支付宝 weixin = 微信")
     private String extractType;
 
+    @ApiModelProperty(value = "brokerage = 佣金 balance = 余额")
+    private String extractSource;
+
     @ApiModelProperty(value = "-1 未通过 0 审核中 1 已提现")
     private Integer status;
 

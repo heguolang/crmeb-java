@@ -1,5 +1,10 @@
 -- 消费券与权证体系
 -- 执行前请备份数据库
+-- 重要：必须用 UTF-8 连接执行，否则菜单中文会变成 ???
+--   例：mysql --default-character-set=utf8mb4 ...
+--   或在脚本开头先执行：SET NAMES utf8mb4;
+
+SET NAMES utf8mb4;
 
 -- 用户表增加字段（若已存在请手动跳过本段）
 SET @exist_voucher := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eb_user' AND COLUMN_NAME = 'consume_voucher');

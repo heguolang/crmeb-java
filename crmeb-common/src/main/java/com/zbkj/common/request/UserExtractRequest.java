@@ -44,6 +44,9 @@ public class UserExtractRequest implements Serializable {
     @NotBlank(message = "请选择提现方式， 支付宝|微信|银行卡")
     private String extractType;
 
+    @ApiModelProperty(value = "提现来源 brokerage=佣金 balance=余额，默认佣金")
+    private String extractSource;
+
     @ApiModelProperty(value = "银行卡")
     @JsonProperty(value = "cardum")
     private String bankCode;

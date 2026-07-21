@@ -163,13 +163,20 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
         systemConfigService.updateOrSaveValueByName("brokerage_func_status", retailShopRequest.getBrokerageFuncStatus().toString());
         systemConfigService.updateOrSaveValueByName("store_brokerage_ratio", retailShopRequest.getStoreBrokerageRatio().toString());
         systemConfigService.updateOrSaveValueByName("store_brokerage_two", retailShopRequest.getStoreBrokerageTwo().toString());
-        systemConfigService.updateOrSaveValueByName("user_extract_min_price", retailShopRequest.getUserExtractMinPrice().toString());
-        BigDecimal fee = ObjectUtil.isNull(retailShopRequest.getUserExtractFee()) ? BigDecimal.ZERO : retailShopRequest.getUserExtractFee();
-        if (fee.compareTo(BigDecimal.ZERO) < 0) {
-            throw new CrmebException("提现手续费不能小于0");
+        // 提现相关配置已迁移到「财务-提现设置」，此处仅在仍传入时兼容更新
+        if (ObjectUtil.isNotNull(retailShopRequest.getUserExtractMinPrice())) {
+            systemConfigService.updateOrSaveValueByName("user_extract_min_price", retailShopRequest.getUserExtractMinPrice().toString());
         }
-        systemConfigService.updateOrSaveValueByName("user_extract_fee", fee.toString());
-        systemConfigService.updateOrSaveValueByName("user_extract_bank", retailShopRequest.getUserExtractBank());
+        if (ObjectUtil.isNotNull(retailShopRequest.getUserExtractFee())) {
+            BigDecimal fee = retailShopRequest.getUserExtractFee();
+            if (fee.compareTo(BigDecimal.ZERO) < 0) {
+                throw new CrmebException("提现手续费不能小于0");
+            }
+            systemConfigService.updateOrSaveValueByName("user_extract_fee", fee.toString());
+        }
+        if (StrUtil.isNotBlank(retailShopRequest.getUserExtractBank())) {
+            systemConfigService.updateOrSaveValueByName("user_extract_bank", retailShopRequest.getUserExtractBank());
+        }
         systemConfigService.updateOrSaveValueByName("extract_time", retailShopRequest.getExtractTime().toString());
         systemConfigService.updateOrSaveValueByName("brokerage_bindind", retailShopRequest.getBrokerageBindind().toString());
         systemConfigService.updateOrSaveValueByName("store_brokerage_quota", retailShopRequest.getStoreBrokerageQuota().toString());

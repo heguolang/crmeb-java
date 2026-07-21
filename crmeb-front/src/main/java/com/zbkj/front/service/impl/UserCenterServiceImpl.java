@@ -1030,21 +1030,66 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
      */
     @Override
     public UserExtractCashResponse getExtractUser() {
+        return getExtractUser(SysConfigConstants.EXTRACT_SOURCE_BROKERAGE);
+    }
+
+    @Override
+    public UserExtractCashResponse getExtractUser(String source) {
         User user = userService.getInfoException();
-        // 提现最低金额
+        String extractSource = ExtractFeeUtil.normalizeSource(source);
+        UserExtractCashResponse response = new UserExtractCashResponse();
+        response.setExtractSource(extractSource);
+
+        if (SysConfigConstants.EXTRACT_SOURCE_BALANCE.equals(extractSource)) {
+            String extractSwitch = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_BALANCE_EXTRACT_SWITCH);
+            if (StrUtil.isBlank(extractSwitch)) {
+                extractSwitch = "0";
+            }
+            String minPrice = systemConfigService.getValueByKeyException(SysConfigConstants.CONFIG_BALANCE_EXTRACT_MIN_PRICE);
+            String feeType = ExtractFeeUtil.normalizeFeeType(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE_TYPE));
+            String extractFee = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE);
+            if (StrUtil.isBlank(extractFee)) {
+                extractFee = "0";
+            }
+            String multiple = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_BALANCE_EXTRACT_MULTIPLE);
+            if (StrUtil.isBlank(multiple)) {
+                multiple = "0";
+            }
+            response.setExtractSwitch(extractSwitch.trim());
+            response.setMinPrice(minPrice);
+            response.setExtractFeeType(feeType);
+            response.setExtractFee(extractFee);
+            response.setExtractMultiple(multiple.trim());
+            response.setCommissionCount(user.getNowMoney());
+            response.setBrokenCommission(BigDecimal.ZERO);
+            response.setBrokenDay("0");
+            return response;
+        }
+
+        String extractSwitch = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_BROKERAGE_EXTRACT_SWITCH);
+        if (StrUtil.isBlank(extractSwitch)) {
+            extractSwitch = "1";
+        }
         String minPrice = systemConfigService.getValueByKeyException(SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE);
-        // 提现手续费
+        String feeType = ExtractFeeUtil.normalizeFeeType(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE));
         String extractFee = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FEE);
         if (StrUtil.isBlank(extractFee)) {
             extractFee = "0";
         }
-        // 冻结天数
+        String multiple = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_MULTIPLE);
+        if (StrUtil.isBlank(multiple)) {
+            multiple = "0";
+        }
         String extractTime = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FREEZING_TIME);
-        // 可提现佣金
-        BigDecimal brokeragePrice = user.getBrokeragePrice();
-        // 冻结佣金
-        BigDecimal freeze = userBrokerageRecordService.getFreezePrice(user.getUid());
-        return new UserExtractCashResponse(minPrice, brokeragePrice, freeze, extractTime, extractFee);
+        response.setExtractSwitch(extractSwitch.trim());
+        response.setMinPrice(minPrice);
+        response.setExtractFeeType(feeType);
+        response.setExtractFee(extractFee);
+        response.setExtractMultiple(multiple.trim());
+        response.setCommissionCount(user.getBrokeragePrice());
+        response.setBrokenCommission(userBrokerageRecordService.getFreezePrice(user.getUid()));
+        response.setBrokenDay(extractTime);
+        return response;
     }
 
     /**

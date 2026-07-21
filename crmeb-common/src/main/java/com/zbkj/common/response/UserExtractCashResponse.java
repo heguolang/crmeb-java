@@ -8,19 +8,9 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * 提现用户信息响应对象
- *  +----------------------------------------------------------------------
- *  | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
- *  +----------------------------------------------------------------------
- *  | Copyright (c) 2016~2025 https://www.crmeb.com All rights reserved.
- *  +----------------------------------------------------------------------
- *  | Licensed CRMEB并不是自由软件，未经许可不能去掉CRMEB相关版权
- *  +----------------------------------------------------------------------
- *  | Author: CRMEB Team <admin@crmeb.com>
- *  +----------------------------------------------------------------------
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -45,21 +35,30 @@ public class UserExtractCashResponse implements Serializable {
 
     private static final long serialVersionUID=1L;
 
-//    @ApiModelProperty(value = "提现银行")
-//    private List<String> extractBank;
+    @ApiModelProperty(value = "提现来源 brokerage/balance")
+    private String extractSource;
+
+    @ApiModelProperty(value = "提现开关 0关闭 1开启")
+    private String extractSwitch;
 
     @ApiModelProperty(value = "提现最低金额")
     private String minPrice;
 
-    @ApiModelProperty(value = "提现手续费（固定金额）")
+    @ApiModelProperty(value = "手续费类型 fixed/percent")
+    private String extractFeeType;
+
+    @ApiModelProperty(value = "手续费配置值（固定元或百分比）")
     private String extractFee;
 
-    @ApiModelProperty(value = "可提现佣金")
+    @ApiModelProperty(value = "提现倍数，0表示不限制")
+    private String extractMultiple;
+
+    @ApiModelProperty(value = "可提现金额（佣金或余额）")
     private BigDecimal commissionCount;
 
-    @ApiModelProperty(value = "冻结佣金")
+    @ApiModelProperty(value = "冻结佣金（仅佣金提现有意义）")
     private BigDecimal brokenCommission;
 
-    @ApiModelProperty(value = "冻结天数")
+    @ApiModelProperty(value = "冻结天数（仅佣金提现有意义）")
     private String brokenDay;
 }

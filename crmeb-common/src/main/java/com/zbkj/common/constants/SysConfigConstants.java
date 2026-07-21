@@ -62,12 +62,37 @@ public class SysConfigConstants {
     public static final String CONFIG_SITE_TENG_XUN_MAP_KEY = "tengxun_map_key";
     /** 退款理由 */
     public static final String CONFIG_KEY_STOR_REASON = "stor_reason";
-    /** 提现最低金额 */
+    /** 提现最低金额（佣金） */
     public static final String CONFIG_EXTRACT_MIN_PRICE = "user_extract_min_price";
     /** 提现冻结时间 */
     public static final String CONFIG_EXTRACT_FREEZING_TIME = "extract_time";
-    /** 提现手续费（固定金额，元） */
+    /** 佣金提现手续费值（固定元或百分比，随 fee_type） */
     public static final String CONFIG_EXTRACT_FEE = "user_extract_fee";
+    /** 佣金提现手续费类型：fixed / percent */
+    public static final String CONFIG_EXTRACT_FEE_TYPE = "user_extract_fee_type";
+    /** 佣金提现开关：0关闭 1开启 */
+    public static final String CONFIG_BROKERAGE_EXTRACT_SWITCH = "brokerage_extract_switch";
+    /** 余额提现开关 */
+    public static final String CONFIG_BALANCE_EXTRACT_SWITCH = "balance_extract_switch";
+    /** 余额提现最低金额 */
+    public static final String CONFIG_BALANCE_EXTRACT_MIN_PRICE = "balance_extract_min_price";
+    /** 余额提现手续费类型 */
+    public static final String CONFIG_BALANCE_EXTRACT_FEE_TYPE = "balance_extract_fee_type";
+    /** 余额提现手续费值 */
+    public static final String CONFIG_BALANCE_EXTRACT_FEE = "balance_extract_fee";
+    /** 佣金提现倍数：0不限制 */
+    public static final String CONFIG_EXTRACT_MULTIPLE = "user_extract_multiple";
+    /** 余额提现倍数：0不限制 */
+    public static final String CONFIG_BALANCE_EXTRACT_MULTIPLE = "balance_extract_multiple";
+
+    /** 提现来源：佣金 */
+    public static final String EXTRACT_SOURCE_BROKERAGE = "brokerage";
+    /** 提现来源：余额 */
+    public static final String EXTRACT_SOURCE_BALANCE = "balance";
+    /** 手续费类型：固定金额 */
+    public static final String EXTRACT_FEE_TYPE_FIXED = "fixed";
+    /** 手续费类型：比例 */
+    public static final String EXTRACT_FEE_TYPE_PERCENT = "percent";
 
     /** 全场满额包邮开关 */
     public static final String STORE_FEE_POSTAGE_SWITCH = "store_free_postage_switch";

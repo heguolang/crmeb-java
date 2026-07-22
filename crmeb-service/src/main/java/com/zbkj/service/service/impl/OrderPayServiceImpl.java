@@ -291,22 +291,23 @@ public class OrderPayServiceImpl implements OrderPayService {
         recordList.addAll(teamBrokerageService.assignTeamBrokerage(storeOrder));
 
         // 支付成功直接到账：赠送积分记为已完成，并累计待入账金额
-        BigDecimal integralBeforeCredit = ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO);
+        final BigDecimal integralBeforeCredit = ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO);
         BigDecimal integralBalanceCursor = integralBeforeCredit;
-        BigDecimal totalIntegralAdd = BigDecimal.ZERO;
+        BigDecimal totalIntegralAddTemp = BigDecimal.ZERO;
         if (CollUtil.isNotEmpty(integralList)) {
             for (UserIntegralRecord integralRecord : integralList) {
                 if (!IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD.equals(integralRecord.getType())) {
                     continue;
                 }
                 BigDecimal addAmount = ObjectUtil.defaultIfNull(integralRecord.getIntegral(), BigDecimal.ZERO);
-                totalIntegralAdd = totalIntegralAdd.add(addAmount);
+                totalIntegralAddTemp = totalIntegralAddTemp.add(addAmount);
                 integralBalanceCursor = integralBalanceCursor.add(addAmount);
                 integralRecord.setBalance(integralBalanceCursor);
                 integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
                 integralRecord.setFrozenTime(0);
             }
         }
+        final BigDecimal totalIntegralAdd = totalIntegralAddTemp;
 
         // 支付成功直接到账：佣金/团队奖记为已完成
         if (CollUtil.isNotEmpty(recordList)) {

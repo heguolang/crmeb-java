@@ -38,6 +38,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -350,6 +351,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
 
         // 回滚积分
         List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(storeOrder.getOrderId(), storeOrder.getUid());
+        List<UserIntegralRecord> clawbackIntegralList = CollUtil.newArrayList();
         integralRecordList.forEach(record -> {
             if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB)) {// 订单抵扣部分
                 user.setIntegral(ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO).add(record.getIntegral()));
@@ -360,7 +362,10 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                 record.setMark(StrUtil.format("订单退款，返还支付扣除得{}积分", record.getIntegral()));
                 record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
                 record.setUpdateTime(cn.hutool.core.date.DateUtil.date());
-            } else if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD)) {// 冻结积分部分
+            } else if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD)) {// 赠送积分
+                if (record.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE)) {
+                    clawbackIntegralList.add(record);
+                }
                 record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_INVALIDATION);
                 record.setUpdateTime(cn.hutool.core.date.DateUtil.date());
             }
@@ -373,17 +378,22 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
         StoreOrder tempOrder = new StoreOrder();
         tempOrder.setId(storeOrder.getId());
         tempOrder.setRefundStatus(2);
-        // 佣金处理：只处理冻结期佣金
-        // 查询佣金记录
+        // 佣金处理：未完成作废；已到账则扣回
         List<UserBrokerageRecord> brokerageRecordList = CollUtil.newArrayList();
+        List<UserBrokerageRecord> clawbackBrokerageList = CollUtil.newArrayList();
         List<UserBrokerageRecord> recordList = userBrokerageRecordService.findListByLinkIdAndLinkType(storeOrder.getOrderId(), BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
         if (CollUtil.isNotEmpty(recordList)) {
             recordList.forEach(r -> {
-                //创建、冻结期佣金置为失效状态
                 if (r.getStatus() < BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE) {
                     r.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_INVALIDATION);
                     r.setUpdateTime(DateUtil.date());
                     brokerageRecordList.add(r);
+                } else if (r.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE)
+                        && BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD.equals(r.getType())) {
+                    r.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_INVALIDATION);
+                    r.setUpdateTime(DateUtil.date());
+                    brokerageRecordList.add(r);
+                    clawbackBrokerageList.add(r);
                 }
             });
         }
@@ -403,10 +413,43 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
             if (CollUtil.isNotEmpty(updateIntegralList)) {
                 userIntegralRecordService.updateBatchById(updateIntegralList);
             }
+            // 已到账赠送积分扣回
+            if (CollUtil.isNotEmpty(clawbackIntegralList)) {
+                User integralUser = userService.getById(storeOrder.getUid());
+                BigDecimal before = ObjectUtil.isNotNull(integralUser)
+                        ? ObjectUtil.defaultIfNull(integralUser.getIntegral(), BigDecimal.ZERO)
+                        : BigDecimal.ZERO;
+                BigDecimal totalSub = clawbackIntegralList.stream()
+                        .map(r -> ObjectUtil.defaultIfNull(r.getIntegral(), BigDecimal.ZERO))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                if (totalSub.compareTo(BigDecimal.ZERO) > 0) {
+                    Boolean integralOk = userService.operationIntegral(storeOrder.getUid(), totalSub, before, "sub");
+                    if (!Boolean.TRUE.equals(integralOk)) {
+                        throw new CrmebException("退款扣回积分失败");
+                    }
+                }
+            }
 
             // 佣金处理
             if (CollUtil.isNotEmpty(brokerageRecordList)) {
                 userBrokerageRecordService.updateBatchById(brokerageRecordList);
+            }
+            // 已到账佣金/团队奖扣回
+            if (CollUtil.isNotEmpty(clawbackBrokerageList)) {
+                Map<Integer, BigDecimal> brokerageCursor = new HashMap<>();
+                for (UserBrokerageRecord r : clawbackBrokerageList) {
+                    BigDecimal before = brokerageCursor.computeIfAbsent(r.getUid(), uid -> {
+                        User bu = userService.getById(uid);
+                        return ObjectUtil.isNotNull(bu)
+                                ? ObjectUtil.defaultIfNull(bu.getBrokeragePrice(), BigDecimal.ZERO)
+                                : BigDecimal.ZERO;
+                    });
+                    Boolean brokerageOk = userService.operationBrokerage(r.getUid(), r.getPrice(), before, "sub");
+                    if (!Boolean.TRUE.equals(brokerageOk)) {
+                        throw new CrmebException("退款扣回佣金失败，可能佣金已提现");
+                    }
+                    brokerageCursor.put(r.getUid(), before.subtract(r.getPrice()));
+                }
             }
 
             // 经验/订单数处理
@@ -526,53 +569,85 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
         }
         User user = userService.getById(storeOrder.getUid());
 
-        // 获取佣金记录
+        // 获取佣金记录（历史待入账记录在收货时直接到账；已到账的跳过）
         List<UserBrokerageRecord> recordList = userBrokerageRecordService.findListByLinkIdAndLinkType(storeOrder.getOrderId(), BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
         logger.info("收货处理佣金条数：" + recordList.size());
+        List<UserBrokerageRecord> pendingBrokerageList = CollUtil.newArrayList();
         for (UserBrokerageRecord record : recordList) {
-            if (!record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE)) {
-                throw new CrmebException(StrUtil.format("订单收货task处理，订单佣金记录不是创建状态，id={}", orderId));
+            if (record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE)
+                    || record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_INVALIDATION)) {
+                continue;
             }
-            // 佣金进入冻结期
-            record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_FROZEN);
-            // 计算解冻时间
-            Long thawTime = cn.hutool.core.date.DateUtil.current(false);
-            if (record.getFrozenTime() > 0) {
-                DateTime dateTime = cn.hutool.core.date.DateUtil.offsetDay(new Date(), record.getFrozenTime());
-                thawTime = dateTime.getTime();
+            if (!record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE)
+                    && !record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_FROZEN)) {
+                throw new CrmebException(StrUtil.format("订单收货task处理，订单佣金记录状态异常，id={}", orderId));
             }
-            record.setThawTime(thawTime);
-            record.setUpdateTime(DateUtil.date());
+            pendingBrokerageList.add(record);
         }
 
-        // 获取积分记录
+        // 获取积分记录（历史待入账赠送积分收货时直接到账）
         List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(storeOrder.getOrderId(), storeOrder.getUid());
-
         logger.info("收货处理积分条数：" + integralRecordList.size());
-        List<UserIntegralRecord> userIntegralRecordList = integralRecordList.stream().filter(e -> e.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD)).collect(Collectors.toList());
-        for (UserIntegralRecord record : userIntegralRecordList) {
-            // 佣金进入冻结期
-            record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_FROZEN);
-            // 计算解冻时间
-            Long thawTime = cn.hutool.core.date.DateUtil.current(false);
-            if (record.getFrozenTime() > 0) {
-                DateTime dateTime = cn.hutool.core.date.DateUtil.offsetDay(new Date(), record.getFrozenTime());
-                thawTime = dateTime.getTime();
-            }
-            record.setThawTime(thawTime);
-            record.setUpdateTime(DateUtil.date());
-        }
+        List<UserIntegralRecord> pendingIntegralList = integralRecordList.stream()
+                .filter(e -> e.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD))
+                .filter(e -> e.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE)
+                        || e.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_FROZEN))
+                .collect(Collectors.toList());
 
         Boolean execute = transactionTemplate.execute(e -> {
             // 日志
             storeOrderStatusService.createLog(storeOrder.getId(), "user_take_delivery", Constants.ORDER_STATUS_STR_TAKE);
-            // 分佣-佣金进入冻结期
-            if (CollUtil.isNotEmpty(recordList)) {
-                userBrokerageRecordService.updateBatchById(recordList);
+
+            // 历史未到账佣金：收货直接入账
+            if (CollUtil.isNotEmpty(pendingBrokerageList)) {
+                Map<Integer, BigDecimal> brokerageCursor = new HashMap<>();
+                for (UserBrokerageRecord record : pendingBrokerageList) {
+                    BigDecimal before = brokerageCursor.computeIfAbsent(record.getUid(), uid -> {
+                        User bu = userService.getById(uid);
+                        return ObjectUtil.isNotNull(bu)
+                                ? ObjectUtil.defaultIfNull(bu.getBrokeragePrice(), BigDecimal.ZERO)
+                                : BigDecimal.ZERO;
+                    });
+                    BigDecimal after = before.add(ObjectUtil.defaultIfNull(record.getPrice(), BigDecimal.ZERO));
+                    record.setBalance(after);
+                    record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+                    record.setFrozenTime(0);
+                    record.setThawTime(cn.hutool.core.date.DateUtil.current(false));
+                    record.setUpdateTime(DateUtil.date());
+                    Boolean brokerageOk = userService.operationBrokerage(record.getUid(), record.getPrice(), before, "add");
+                    if (!Boolean.TRUE.equals(brokerageOk)) {
+                        throw new CrmebException("收货佣金到账失败");
+                    }
+                    brokerageCursor.put(record.getUid(), after);
+                }
+                userBrokerageRecordService.updateBatchById(pendingBrokerageList);
             }
-            // 积分进入冻结期
-            if (CollUtil.isNotEmpty(userIntegralRecordList)) {
-                userIntegralRecordService.updateBatchById(userIntegralRecordList);
+
+            // 历史未到账赠送积分：收货直接入账
+            if (CollUtil.isNotEmpty(pendingIntegralList)) {
+                User integralUser = userService.getById(storeOrder.getUid());
+                BigDecimal before = ObjectUtil.isNotNull(integralUser)
+                        ? ObjectUtil.defaultIfNull(integralUser.getIntegral(), BigDecimal.ZERO)
+                        : BigDecimal.ZERO;
+                BigDecimal cursor = before;
+                BigDecimal totalAdd = BigDecimal.ZERO;
+                for (UserIntegralRecord record : pendingIntegralList) {
+                    BigDecimal addAmount = ObjectUtil.defaultIfNull(record.getIntegral(), BigDecimal.ZERO);
+                    totalAdd = totalAdd.add(addAmount);
+                    cursor = cursor.add(addAmount);
+                    record.setBalance(cursor);
+                    record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
+                    record.setFrozenTime(0);
+                    record.setThawTime(cn.hutool.core.date.DateUtil.current(false));
+                    record.setUpdateTime(DateUtil.date());
+                }
+                if (totalAdd.compareTo(BigDecimal.ZERO) > 0) {
+                    Boolean integralOk = userService.operationIntegral(storeOrder.getUid(), totalAdd, before, "add");
+                    if (!Boolean.TRUE.equals(integralOk)) {
+                        throw new CrmebException("收货积分到账失败");
+                    }
+                }
+                userIntegralRecordService.updateBatchById(pendingIntegralList);
             }
             return Boolean.TRUE;
         });

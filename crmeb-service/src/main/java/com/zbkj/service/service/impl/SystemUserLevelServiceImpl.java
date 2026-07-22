@@ -311,10 +311,7 @@ public class SystemUserLevelServiceImpl extends ServiceImpl<SystemUserLevelDao, 
             systemUserLevel.setUpdateTime(DateUtil.date());
             dao.updateById(systemUserLevel);
             systemUserLevelBrokerageService.saveOrUpdateByLevelId(id, request.getBrokerage());
-            // 删除对应的用户等级数据
-            userLevelService.deleteByLevelId(id);
-            // 清除对应的用户等级
-            userService.removeLevelByLevelId(id);
+            // 仅更新等级配置与分佣，不清空已绑定该等级的用户（删除/禁用时才清空）
             return Boolean.TRUE;
         });
     }

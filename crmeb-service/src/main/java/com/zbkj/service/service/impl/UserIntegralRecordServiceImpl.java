@@ -73,22 +73,11 @@ public class UserIntegralRecordServiceImpl extends ServiceImpl<UserIntegralRecor
         LambdaQueryWrapper<UserIntegralRecord> lqw = Wrappers.lambdaQuery();
         lqw.eq(UserIntegralRecord::getUid, uid);
         lqw.eq(UserIntegralRecord::getLinkId, orderNo);
-        lqw.in(UserIntegralRecord::getStatus, IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE, IntegralRecordConstants.INTEGRAL_RECORD_STATUS_FROZEN, IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
+        lqw.in(UserIntegralRecord::getStatus, IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE,
+                IntegralRecordConstants.INTEGRAL_RECORD_STATUS_FROZEN,
+                IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
         List<UserIntegralRecord> recordList = dao.selectList(lqw);
-        if (CollUtil.isEmpty(recordList)) {
-            return recordList;
-        }
-        for (int i = 0; i < recordList.size();) {
-            UserIntegralRecord record = recordList.get(i);
-            if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD)) {
-                if (record.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE)) {
-                    recordList.remove(i);
-                    continue;
-                }
-            }
-            i++;
-        }
-        return recordList;
+        return CollUtil.isEmpty(recordList) ? CollUtil.newArrayList() : recordList;
     }
 
     /**
@@ -136,8 +125,11 @@ public class UserIntegralRecordServiceImpl extends ServiceImpl<UserIntegralRecor
         Page<UserIntegralRecordResponse> page = PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
         LambdaQueryWrapper<UserIntegralRecord> lqw = Wrappers.lambdaQuery();
         lqw.select(UserIntegralRecord::getId, UserIntegralRecord::getTitle, UserIntegralRecord::getBalance, UserIntegralRecord::getIntegral,
-                UserIntegralRecord::getMark, UserIntegralRecord::getUid, UserIntegralRecord::getUpdateTime);
-        lqw.eq(UserIntegralRecord::getStatus, IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
+                UserIntegralRecord::getMark, UserIntegralRecord::getUid, UserIntegralRecord::getStatus, UserIntegralRecord::getLinkId,
+                UserIntegralRecord::getUpdateTime);
+        if (ObjectUtil.isNotNull(request.getStatus())) {
+            lqw.eq(UserIntegralRecord::getStatus, request.getStatus());
+        }
         if (ObjectUtil.isNotNull(request.getUid())) {
             lqw.eq(UserIntegralRecord::getUid, request.getUid());
         }

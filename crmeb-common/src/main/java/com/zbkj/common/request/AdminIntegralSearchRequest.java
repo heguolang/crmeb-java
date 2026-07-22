@@ -37,4 +37,7 @@ public class AdminIntegralSearchRequest implements Serializable {
 
     @ApiModelProperty(value = "用户id")
     private Integer uid;
+
+    @ApiModelProperty(value = "状态：1创建 2冻结中 3已完成 4失效，空=全部")
+    private Integer status;
 }

@@ -36,4 +36,7 @@ public class BrokerageRecordRequest implements Serializable {
     @ApiModelProperty(value = "佣金分级筛选（订单返佣时有效）：0自购 1一级 2二级 10团队极差 11团队平级")
     private Integer brokerageLevel;
 
+    @ApiModelProperty(value = "状态：1待入账 2冻结中 3已完成 4已失效 5提现申请，空=全部")
+    private Integer status;
+
 }

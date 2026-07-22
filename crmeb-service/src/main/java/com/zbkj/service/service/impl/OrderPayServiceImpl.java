@@ -290,6 +290,42 @@ public class OrderPayServiceImpl implements OrderPayService {
         recordList.addAll(assignSelfBrokerage(storeOrder, user, brokerageLevelId, matchedBrokerageLevel));
         recordList.addAll(teamBrokerageService.assignTeamBrokerage(storeOrder));
 
+        // 支付成功直接到账：赠送积分记为已完成，并累计待入账金额
+        BigDecimal integralBeforeCredit = ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO);
+        BigDecimal integralBalanceCursor = integralBeforeCredit;
+        BigDecimal totalIntegralAdd = BigDecimal.ZERO;
+        if (CollUtil.isNotEmpty(integralList)) {
+            for (UserIntegralRecord integralRecord : integralList) {
+                if (!IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD.equals(integralRecord.getType())) {
+                    continue;
+                }
+                BigDecimal addAmount = ObjectUtil.defaultIfNull(integralRecord.getIntegral(), BigDecimal.ZERO);
+                totalIntegralAdd = totalIntegralAdd.add(addAmount);
+                integralBalanceCursor = integralBalanceCursor.add(addAmount);
+                integralRecord.setBalance(integralBalanceCursor);
+                integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
+                integralRecord.setFrozenTime(0);
+            }
+        }
+
+        // 支付成功直接到账：佣金/团队奖记为已完成
+        if (CollUtil.isNotEmpty(recordList)) {
+            Map<Integer, BigDecimal> brokerageBalanceMap = new HashMap<>();
+            for (UserBrokerageRecord brokerageRecord : recordList) {
+                BigDecimal before = brokerageBalanceMap.computeIfAbsent(brokerageRecord.getUid(), uid -> {
+                    User brokerageUser = userService.getById(uid);
+                    return ObjectUtil.isNotNull(brokerageUser)
+                            ? ObjectUtil.defaultIfNull(brokerageUser.getBrokeragePrice(), BigDecimal.ZERO)
+                            : BigDecimal.ZERO;
+                });
+                BigDecimal after = before.add(ObjectUtil.defaultIfNull(brokerageRecord.getPrice(), BigDecimal.ZERO));
+                brokerageRecord.setBalance(after);
+                brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+                brokerageRecord.setFrozenTime(0);
+                brokerageBalanceMap.put(brokerageRecord.getUid(), after);
+            }
+        }
+
         // 分销员逻辑
         if (!user.getIsPromoter()) {
             String funcStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_BROKERAGE_FUNC_STATUS);
@@ -333,6 +369,32 @@ public class OrderPayServiceImpl implements OrderPayService {
                     temp.setLinkId(storeOrder.getOrderId());
                 });
                 userBrokerageRecordService.saveBatch(recordList);
+            }
+
+            // 赠送积分支付成功直接到账
+            if (totalIntegralAdd.compareTo(BigDecimal.ZERO) > 0) {
+                Boolean integralOk = userService.operationIntegral(user.getUid(), totalIntegralAdd, integralBeforeCredit, "add");
+                if (!Boolean.TRUE.equals(integralOk)) {
+                    throw new CrmebException("积分到账失败");
+                }
+            }
+
+            // 佣金/团队奖支付成功直接到账
+            if (CollUtil.isNotEmpty(recordList)) {
+                Map<Integer, BigDecimal> brokerageCursor = new HashMap<>();
+                for (UserBrokerageRecord br : recordList) {
+                    BigDecimal before = brokerageCursor.computeIfAbsent(br.getUid(), uid -> {
+                        User bu = userService.getById(uid);
+                        return ObjectUtil.isNotNull(bu)
+                                ? ObjectUtil.defaultIfNull(bu.getBrokeragePrice(), BigDecimal.ZERO)
+                                : BigDecimal.ZERO;
+                    });
+                    Boolean brokerageOk = userService.operationBrokerage(br.getUid(), br.getPrice(), before, "add");
+                    if (!Boolean.TRUE.equals(brokerageOk)) {
+                        throw new CrmebException("佣金到账失败");
+                    }
+                    brokerageCursor.put(br.getUid(), before.add(br.getPrice()));
+                }
             }
 
             // 如果是拼团订单进行拼团后置处理

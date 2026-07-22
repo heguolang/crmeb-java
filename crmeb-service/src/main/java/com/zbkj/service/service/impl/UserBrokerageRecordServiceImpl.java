@@ -383,7 +383,6 @@ public class UserBrokerageRecordServiceImpl extends ServiceImpl<UserBrokerageRec
             switch (request.getType()) {
                 case 1:// 订单返佣
                     lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
-                    lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
                     lqw.eq(UserBrokerageRecord::getType, BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
                     if (ObjectUtil.isNotNull(request.getBrokerageLevel())) {
                         lqw.eq(UserBrokerageRecord::getBrokerageLevel, request.getBrokerageLevel());
@@ -391,28 +390,45 @@ public class UserBrokerageRecordServiceImpl extends ServiceImpl<UserBrokerageRec
                     break;
                 case 2:// 申请提现
                     lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_WITHDRAW);
-                    lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_WITHDRAW);
                     lqw.eq(UserBrokerageRecord::getType, BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_SUB);
+                    // 未指定状态时默认提现申请中
+                    if (ObjectUtil.isNull(request.getStatus())) {
+                        lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_WITHDRAW);
+                    }
                     break;
                 case 3:// 提现失败
                     lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_WITHDRAW);
-                    lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
                     lqw.eq(UserBrokerageRecord::getType, BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+                    if (ObjectUtil.isNull(request.getStatus())) {
+                        lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+                    }
                     break;
                 case 4:// 提现成功
                     lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_WITHDRAW);
-                    lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
                     lqw.eq(UserBrokerageRecord::getType, BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_SUB);
+                    if (ObjectUtil.isNull(request.getStatus())) {
+                        lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+                    }
                     break;
                 case 5:// 佣金转余额
                     lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_YUE);
-                    lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
                     lqw.eq(UserBrokerageRecord::getType, BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_SUB);
+                    if (ObjectUtil.isNull(request.getStatus())) {
+                        lqw.eq(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+                    }
                     break;
             }
-        } else {
-            lqw.in(UserBrokerageRecord::getStatus, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE, BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_WITHDRAW);
         }
+        // 状态筛选：空则展示全部状态（含待入账/冻结中）
+        if (ObjectUtil.isNotNull(request.getStatus())) {
+            lqw.eq(UserBrokerageRecord::getStatus, request.getStatus());
+        }
+        // 团队奖（极差/平级）独立在「团队奖资金记录」查看，佣金记录排除
+        lqw.and(w -> w.isNull(UserBrokerageRecord::getBrokerageLevel)
+                .or()
+                .notIn(UserBrokerageRecord::getBrokerageLevel,
+                        BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF,
+                        BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER));
         lqw.orderByDesc(UserBrokerageRecord::getUpdateTime, UserBrokerageRecord::getId);
         List<UserBrokerageRecord> list = dao.selectList(lqw);
         return CommonPage.copyPageInfo(page, list);

@@ -727,7 +727,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         if (user.getNowMoney().compareTo(storeOrder.getPayPrice()) < 0) {
             throw new CrmebException("用户余额不足");
         }
-        if (user.getIntegral() < storeOrder.getUseIntegral()) {
+        if (user.getIntegral() == null || user.getIntegral().compareTo(BigDecimal.valueOf(storeOrder.getUseIntegral())) < 0) {
             throw new CrmebException("用户积分不足");
         }
         storeOrder.setPaid(true);
@@ -740,7 +740,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             userService.updateNowMoney(user, storeOrder.getPayPrice(), "sub");
             // 扣除积分
             if (storeOrder.getUseIntegral() > 0) {
-                userService.updateIntegral(user, storeOrder.getUseIntegral(), "sub");
+                userService.updateIntegral(user, BigDecimal.valueOf(storeOrder.getUseIntegral()), "sub");
             }
             // 添加支付成功redis队列（事务外同步执行后置，队列仅作失败重试兜底）
             if (storeOrder.getCombinationId() > 0) {
@@ -858,7 +858,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             throw new CrmebException("变更订单支付类型失败!");
         }
 
-        if (user.getIntegral() < storeOrder.getUseIntegral()) {
+        if (user.getIntegral() == null || user.getIntegral().compareTo(BigDecimal.valueOf(storeOrder.getUseIntegral())) < 0) {
             throw new CrmebException("用户积分不足");
         }
 
@@ -1037,7 +1037,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         integralRecord.setLinkType(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_ORDER);
         integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB);
         integralRecord.setTitle(IntegralRecordConstants.BROKERAGE_RECORD_TITLE_ORDER);
-        integralRecord.setIntegral(storeOrder.getUseIntegral());
+        integralRecord.setIntegral(BigDecimal.valueOf(storeOrder.getUseIntegral()));
         integralRecord.setBalance(user.getIntegral());
         integralRecord.setMark(StrUtil.format("订单支付抵扣{}积分购买商品", storeOrder.getUseIntegral()));
         integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
@@ -1079,14 +1079,15 @@ public class OrderPayServiceImpl implements OrderPayService {
      * 积分添加记录
      * @return UserIntegralRecord
      */
-    private UserIntegralRecord integralRecordInit(StoreOrder storeOrder, Integer balance, Integer integral, String type) {
+    private UserIntegralRecord integralRecordInit(StoreOrder storeOrder, BigDecimal balance, Integer integral, String type) {
         UserIntegralRecord integralRecord = new UserIntegralRecord();
         integralRecord.setUid(storeOrder.getUid());
         integralRecord.setLinkId(storeOrder.getOrderId());
         integralRecord.setLinkType(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_ORDER);
         integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD);
         integralRecord.setTitle(IntegralRecordConstants.BROKERAGE_RECORD_TITLE_ORDER);
-        integralRecord.setIntegral(integral);
+        BigDecimal integralAmount = BigDecimal.valueOf(integral);
+        integralRecord.setIntegral(integralAmount);
         integralRecord.setBalance(balance);
         if (type.equals("order")){
             integralRecord.setMark(StrUtil.format("用户付款成功,订单增加{}积分", integral));

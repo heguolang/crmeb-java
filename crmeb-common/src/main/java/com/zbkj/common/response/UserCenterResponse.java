@@ -48,7 +48,7 @@ public class UserCenterResponse implements Serializable {
     private BigDecimal nowMoney;
 
     @ApiModelProperty(value = "用户剩余积分")
-    private Integer integral;
+    private BigDecimal integral;
 
     @ApiModelProperty(value = "消费券")
     private BigDecimal consumeVoucher;

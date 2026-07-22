@@ -94,6 +94,9 @@ public class StoreProductAddRequest implements Serializable {
     @ApiModelProperty(value = "获得积分")
     private Integer giveIntegral;
 
+    @ApiModelProperty(value = "是否支持积分抵扣，默认否")
+    private Boolean isIntegral;
+
     @ApiModelProperty(value = "是否单独分佣", required = true)
     @NotNull(message = "是否单独分佣不能为空")
     private Boolean isSub;

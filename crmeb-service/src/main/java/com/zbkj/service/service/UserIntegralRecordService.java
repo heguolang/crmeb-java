@@ -52,7 +52,7 @@ public interface UserIntegralRecordService extends IService<UserIntegralRecord> 
      * @param linkType 关联类型
      * @return 积分总数
      */
-    Integer getSumIntegral(Integer uid, Integer type, String date, List<String> linkTypeList);
+    java.math.BigDecimal getSumIntegral(Integer uid, Integer type, String date, List<String> linkTypeList);
 
     /**
      * H5用户积分列表
@@ -67,5 +67,5 @@ public interface UserIntegralRecordService extends IService<UserIntegralRecord> 
      * @param uid 用户uid
      * @return 积分数量
      */
-    Integer getFrozenIntegralByUid(Integer uid);
+    java.math.BigDecimal getFrozenIntegralByUid(Integer uid);
 }

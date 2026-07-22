@@ -155,7 +155,20 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
             if (currentLevelId.equals(matchedLevelId)) {
                 continue;
             }
-            // 更新用户当前团队等级
+
+            // 只升不降：订单支付/完成/退款触发的自动同步，不得清空或降低已有团队等级
+            // （避免管理员手动设置等级后，因业绩未达门槛被订单流程清空）
+            int currentGrade = 0;
+            if (currentLevelId > 0) {
+                SystemTeamLevel currentLevel = systemTeamLevelService.getById(currentLevelId);
+                currentGrade = ObjectUtil.isNull(currentLevel) ? 0 : ObjectUtil.defaultIfNull(currentLevel.getGrade(), 0);
+            }
+            int matchedGrade = ObjectUtil.isNull(matched) ? 0 : ObjectUtil.defaultIfNull(matched.getGrade(), 0);
+            if (matchedGrade <= currentGrade) {
+                continue;
+            }
+
+            // 更新用户当前团队等级（升级）
             User updateUser = new User();
             updateUser.setUid(uid);
             updateUser.setTeamLevel(matchedLevelId);
@@ -166,11 +179,11 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
             UserTeamLevel record = new UserTeamLevel();
             record.setUid(uid);
             record.setTeamLevelId(matchedLevelId);
-            record.setGrade(ObjectUtil.isNull(matched) ? 0 : ObjectUtil.defaultIfNull(matched.getGrade(), 0));
+            record.setGrade(matchedGrade);
             record.setStatus(true);
             record.setRemind(false);
             record.setIsDel(false);
-            record.setMark(ObjectUtil.isNull(matched) ? "团队等级清空/降级" : "团队等级变更");
+            record.setMark("团队等级升级");
             record.setCreateTime(DateUtil.date());
             record.setUpdateTime(DateUtil.date());
             userTeamLevelDao.insert(record);

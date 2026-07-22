@@ -112,10 +112,12 @@ public class SysConfigConstants {
     /** 下单支付金额按比例赠送积分（实际支付1元赠送多少积分) */
     public static final String CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE = "order_give_integral";
 
-    /** 多少积分 = 1 消费券 */
+    /** 多少积分 = 1 消费券（主动兑换） */
     public static final String CONFIG_KEY_INTEGRAL_TO_VOUCHER_RATIO = "integral_to_voucher_ratio";
     /** 每日强制释放当前积分的百分比 */
     public static final String CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO = "integral_daily_release_ratio";
+    /** 每日释放：多少积分 = 1 消费券（与主动兑换比例独立） */
+    public static final String CONFIG_KEY_INTEGRAL_DAILY_RELEASE_EXCHANGE_RATIO = "integral_daily_release_exchange_ratio";
     /** 多少消费券 = 1 元余额 */
     public static final String CONFIG_KEY_VOUCHER_TO_BALANCE_RATIO = "voucher_to_balance_ratio";
     /** 兑 1 权证所需消费券 */

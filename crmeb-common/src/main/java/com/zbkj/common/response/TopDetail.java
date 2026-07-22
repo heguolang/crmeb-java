@@ -24,7 +24,7 @@ public class TopDetail {
     // 余额
     private BigDecimal balance;
     // 积分
-    private Integer integralCount;
+    private BigDecimal integralCount;
     // 总计订单
     private Integer allOrderCount;
     // 本月订单

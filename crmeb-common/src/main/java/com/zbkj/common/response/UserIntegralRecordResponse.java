@@ -10,6 +10,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -51,10 +52,10 @@ public class UserIntegralRecordResponse implements Serializable {
     private String title;
 
     @ApiModelProperty(value = "积分")
-    private Integer integral;
+    private BigDecimal integral;
 
     @ApiModelProperty(value = "剩余")
-    private Integer balance;
+    private BigDecimal balance;
 
     @ApiModelProperty(value = "备注")
     private String mark;

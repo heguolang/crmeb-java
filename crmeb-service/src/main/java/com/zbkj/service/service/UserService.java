@@ -163,7 +163,7 @@ public interface UserService extends IService<User> {
      * @param type 增加add、扣减sub
      * @return 更新后的用户对象
      */
-    Boolean updateIntegral(User user, Integer integral, String type);
+    Boolean updateIntegral(User user, BigDecimal integral, String type);
 
     /**
      * 手机号注册用户
@@ -215,7 +215,7 @@ public interface UserService extends IService<User> {
      * @param nowIntegral 历史积分
      * @param type 类型：add—添加，sub—扣减
      */
-    Boolean operationIntegral(Integer uid, Integer integral, Integer nowIntegral, String type);
+    Boolean operationIntegral(Integer uid, BigDecimal integral, BigDecimal nowIntegral, String type);
 
     /**
      * 添加/扣减消费券

@@ -1002,15 +1002,15 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         IntegralUserResponse userSignInfoResponse = new IntegralUserResponse();
 
         //签到
-        Integer sumIntegral = userIntegralRecordService.getSumIntegral(user.getUid(), IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD, "", null);
+        BigDecimal sumIntegral = userIntegralRecordService.getSumIntegral(user.getUid(), IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD, "", null);
         ArrayList<String> linkTypeList = new ArrayList<>();
         linkTypeList.add(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_ORDER);
         linkTypeList.add(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_SYSTEM);
-        Integer deductionIntegral = userIntegralRecordService.getSumIntegral(user.getUid(), IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB, "", linkTypeList);
+        BigDecimal deductionIntegral = userIntegralRecordService.getSumIntegral(user.getUid(), IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB, "", linkTypeList);
         userSignInfoResponse.setSumIntegral(sumIntegral);
         userSignInfoResponse.setDeductionIntegral(deductionIntegral);
         // 冻结积分
-        Integer frozenIntegral = userIntegralRecordService.getFrozenIntegralByUid(user.getUid());
+        BigDecimal frozenIntegral = userIntegralRecordService.getFrozenIntegralByUid(user.getUid());
         userSignInfoResponse.setFrozenIntegral(frozenIntegral);
         userSignInfoResponse.setIntegral(user.getIntegral());
         return userSignInfoResponse;

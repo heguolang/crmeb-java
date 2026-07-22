@@ -28,7 +28,7 @@ public interface UserTeamLevelService extends IService<UserTeamLevel> {
     Boolean processTeamLevelOnOrderComplete(StoreOrder storeOrder);
 
     /**
-     * 订单退款时回滚自购/团队金额并触发团队等级降级（如有）
+     * 订单退款时回滚自购/团队金额；等级采用只升不降，退款不会自动清空/降低团队等级
      */
     Boolean rollbackTeamLevelOnRefund(StoreOrder storeOrder);
 

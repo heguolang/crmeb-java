@@ -1439,7 +1439,43 @@ public class OrderServiceImpl implements OrderService {
             detailVoList = validatePreOrderAgain(detailRequest, user);
         }
         orderInfoVo.setOrderDetailList(detailVoList);
+        fillCanUseIntegral(orderInfoVo);
         return orderInfoVo;
+    }
+
+    /**
+     * 订单内全部商品均开启「支持积分抵扣」时才允许使用积分抵扣
+     */
+    private void fillCanUseIntegral(OrderInfoVo orderInfoVo) {
+        List<OrderInfoDetailVo> detailVoList = orderInfoVo.getOrderDetailList();
+        if (CollUtil.isEmpty(detailVoList)) {
+            orderInfoVo.setCanUseIntegral(false);
+            return;
+        }
+        // 营销活动订单前端本身不展示积分抵扣
+        if (ObjectUtil.defaultIfNull(orderInfoVo.getSeckillId(), 0) > 0
+                || ObjectUtil.defaultIfNull(orderInfoVo.getBargainId(), 0) > 0
+                || ObjectUtil.defaultIfNull(orderInfoVo.getCombinationId(), 0) > 0
+                || Boolean.TRUE.equals(orderInfoVo.getIsVideo())) {
+            orderInfoVo.setCanUseIntegral(false);
+            return;
+        }
+        List<Integer> productIds = detailVoList.stream()
+                .map(OrderInfoDetailVo::getProductId)
+                .filter(ObjectUtil::isNotNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (CollUtil.isEmpty(productIds)) {
+            orderInfoVo.setCanUseIntegral(false);
+            return;
+        }
+        List<StoreProduct> products = storeProductService.listByIds(productIds);
+        if (CollUtil.isEmpty(products) || products.size() != productIds.size()) {
+            orderInfoVo.setCanUseIntegral(false);
+            return;
+        }
+        boolean canUse = products.stream().allMatch(p -> Boolean.TRUE.equals(p.getIsIntegral()));
+        orderInfoVo.setCanUseIntegral(canUse);
     }
 
     /**
@@ -2135,7 +2171,7 @@ public class OrderServiceImpl implements OrderService {
                 if (orderInfoVo.getProTotalFee().compareTo(storeCouponUser.getMoney()) <= 0) {
                     priceResponse.setCouponFee(orderInfoVo.getProTotalFee());
                     priceResponse.setDeductionPrice(BigDecimal.ZERO);
-                    priceResponse.setSurplusIntegral(user.getIntegral());
+                    priceResponse.setSurplusIntegral(ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO).setScale(0, RoundingMode.DOWN).intValue());
                     priceResponse.setPayFee(priceResponse.getFreightFee());
                     priceResponse.setUsedIntegral(0);
                     priceResponse.setUseIntegral(false);
@@ -2170,7 +2206,7 @@ public class OrderServiceImpl implements OrderService {
                     }
                     if (orderInfoVo.getProTotalFee().compareTo(productTotalPrice) <= 0 && productTotalPrice.compareTo(storeCouponUser.getMoney()) <= 0) {
                         priceResponse.setDeductionPrice(BigDecimal.ZERO);
-                        priceResponse.setSurplusIntegral(user.getIntegral());
+                        priceResponse.setSurplusIntegral(ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO).setScale(0, RoundingMode.DOWN).intValue());
                         priceResponse.setPayFee(priceResponse.getFreightFee());
                         priceResponse.setUsedIntegral(0);
                         priceResponse.setUseIntegral(false);
@@ -2215,7 +2251,7 @@ public class OrderServiceImpl implements OrderService {
                     }
                     if (orderInfoVo.getProTotalFee().compareTo(productTotalPrice) <= 0 && productTotalPrice.compareTo(storeCouponUser.getMoney()) <= 0) {
                         priceResponse.setDeductionPrice(BigDecimal.ZERO);
-                        priceResponse.setSurplusIntegral(user.getIntegral());
+                        priceResponse.setSurplusIntegral(ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO).setScale(0, RoundingMode.DOWN).intValue());
                         priceResponse.setPayFee(priceResponse.getFreightFee());
                         priceResponse.setUsedIntegral(0);
                         priceResponse.setUseIntegral(false);
@@ -2229,34 +2265,40 @@ public class OrderServiceImpl implements OrderService {
         BigDecimal payPrice = orderInfoVo.getProTotalFee().subtract(priceResponse.getCouponFee());
         priceResponse.setUseIntegral(request.getUseIntegral());
         priceResponse.setProTotalFee(orderInfoVo.getProTotalFee());
-        if (!request.getUseIntegral() || user.getIntegral() <= 0) {// 不使用积分
+        BigDecimal userIntegral = ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO);
+        int usableIntegral = userIntegral.setScale(0, RoundingMode.DOWN).intValue();
+        boolean wantUseIntegral = Boolean.TRUE.equals(request.getUseIntegral())
+                && Boolean.TRUE.equals(orderInfoVo.getCanUseIntegral());
+        if (!wantUseIntegral || usableIntegral <= 0) {// 不使用积分
             priceResponse.setDeductionPrice(BigDecimal.ZERO);
-            priceResponse.setSurplusIntegral(user.getIntegral());
+            priceResponse.setSurplusIntegral(usableIntegral);
             priceResponse.setPayFee(payPrice.add(priceResponse.getFreightFee()));
             priceResponse.setUsedIntegral(0);
+            priceResponse.setUseIntegral(false);
             return priceResponse;
         }
         // 使用积分
         // 查询积分使用比例
         String integralRatio = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_RATE);
-        BigDecimal deductionPrice = new BigDecimal(user.getIntegral()).multiply(new BigDecimal(integralRatio));
-        if (request.getUseIntegral()) {
+        BigDecimal deductionPrice = BigDecimal.valueOf(usableIntegral).multiply(new BigDecimal(integralRatio));
+        if (wantUseIntegral) {
             // 积分兑换金额小于实际支付金额
             if (deductionPrice.compareTo(payPrice) < 0) {
                 payPrice = payPrice.subtract(deductionPrice);
                 priceResponse.setSurplusIntegral(0);
-                priceResponse.setUsedIntegral(user.getIntegral());
+                priceResponse.setUsedIntegral(usableIntegral);
             } else {
                 deductionPrice = payPrice;
                 if (payPrice.compareTo(BigDecimal.ZERO) > 0) {
                     int usedIntegral = payPrice.divide(new BigDecimal(integralRatio), 0, BigDecimal.ROUND_UP).intValue();
-                    priceResponse.setSurplusIntegral(user.getIntegral() - usedIntegral);
+                    priceResponse.setSurplusIntegral(usableIntegral - usedIntegral);
                     priceResponse.setUsedIntegral(usedIntegral);
                 }
                 payPrice = BigDecimal.ZERO;
             }
             priceResponse.setPayFee(payPrice.add(priceResponse.getFreightFee()));
             priceResponse.setDeductionPrice(deductionPrice);
+            priceResponse.setUseIntegral(true);
         }
         return priceResponse;
     }

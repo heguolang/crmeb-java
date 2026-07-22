@@ -122,6 +122,9 @@ public class StoreProductRequest implements Serializable {
     @ApiModelProperty(value = "获得积分")
     private Integer giveIntegral;
 
+    @ApiModelProperty(value = "是否支持积分抵扣，默认否")
+    private Boolean isIntegral;
+
     @ApiModelProperty(value = "成本价")
     private BigDecimal cost;
 

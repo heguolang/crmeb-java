@@ -34,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -351,7 +352,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
         List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(storeOrder.getOrderId(), storeOrder.getUid());
         integralRecordList.forEach(record -> {
             if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB)) {// 订单抵扣部分
-                user.setIntegral(user.getIntegral() + record.getIntegral());
+                user.setIntegral(ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO).add(record.getIntegral()));
                 record.setId(null);
                 record.setTitle(IntegralRecordConstants.BROKERAGE_RECORD_TITLE_REFUND);
                 record.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD);
@@ -419,7 +420,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                 userLevelService.downLevel(user);
             }
 
-            // 团队等级：退款回滚自购/团队金额并触发降级（如有）
+            // 团队等级：退款回滚自购/团队金额（等级只升不降，不自动清空）
             userTeamLevelService.rollbackTeamLevelOnRefund(storeOrder);
 
             // 回滚库存

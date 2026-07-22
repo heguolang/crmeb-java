@@ -32,6 +32,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -154,7 +156,9 @@ public class UserSignServiceImpl extends ServiceImpl<UserSignDao, UserSign> impl
         userSign.setTitle(Constants.SIGN_TYPE_INTEGRAL_TITLE);
         userSign.setNumber(configVo.getIntegral());
         userSign.setType(Constants.SIGN_TYPE_INTEGRAL);
-        userSign.setBalance(user.getIntegral() + configVo.getIntegral());
+        BigDecimal currentIntegral = ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO);
+        BigDecimal signIntegral = BigDecimal.valueOf(configVo.getIntegral());
+        userSign.setBalance(currentIntegral.add(signIntegral).setScale(0, RoundingMode.DOWN).intValue());
         userSign.setCreateDay(CrmebDateUtil.strToDate(CrmebDateUtil.nowDate(Constants.DATE_FORMAT_DATE), Constants.DATE_FORMAT_DATE));
 
         // 生成用户积分记录
@@ -163,8 +167,8 @@ public class UserSignServiceImpl extends ServiceImpl<UserSignDao, UserSign> impl
         integralRecord.setLinkType(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_SIGN);
         integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD);
         integralRecord.setTitle(IntegralRecordConstants.BROKERAGE_RECORD_TITLE_SIGN);
-        integralRecord.setIntegral(configVo.getIntegral());
-        integralRecord.setBalance(user.getIntegral() + configVo.getIntegral());
+        integralRecord.setIntegral(signIntegral);
+        integralRecord.setBalance(currentIntegral.add(signIntegral));
         integralRecord.setMark(StrUtil.format("签到积分奖励增加了{}积分", configVo.getIntegral()));
         integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
 
@@ -184,7 +188,7 @@ public class UserSignServiceImpl extends ServiceImpl<UserSignDao, UserSign> impl
         }
 
         // 更新用户积分
-        user.setIntegral(user.getIntegral() + configVo.getIntegral());
+        user.setIntegral(currentIntegral.add(signIntegral));
 
         final UserExperienceRecord finalExperienceRecord = experienceRecord;
         Boolean execute = transactionTemplate.execute(e -> {

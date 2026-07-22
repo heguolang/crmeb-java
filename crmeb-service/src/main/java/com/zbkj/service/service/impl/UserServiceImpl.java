@@ -259,12 +259,12 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         }
 
         if (request.getIntegralType().equals(2) && request.getIntegralValue() != 0) {
-            if (user.getIntegral() - request.getIntegralValue() < 0) {
+            if (nullToZeroIntegral(user.getIntegral()).subtract(BigDecimal.valueOf(request.getIntegralValue())).compareTo(BigDecimal.ZERO) < 0) {
                 throw new CrmebException("积分扣减后不能小于0");
             }
         }
         if (request.getIntegralType().equals(1) && request.getIntegralValue() != 0) {
-            if ((user.getIntegral() + request.getIntegralValue()) > 99999999) {
+            if (nullToZeroIntegral(user.getIntegral()).add(BigDecimal.valueOf(request.getIntegralValue())).compareTo(new BigDecimal("99999999")) > 0) {
                 throw new CrmebException("积分添加后不能大于99999999");
             }
         }
@@ -316,23 +316,25 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             // 处理积分
             if (request.getIntegralValue() > 0) {
                 // 生成记录
+                BigDecimal integralValue = BigDecimal.valueOf(request.getIntegralValue());
+                BigDecimal currentIntegral = nullToZeroIntegral(user.getIntegral());
                 UserIntegralRecord integralRecord = new UserIntegralRecord();
                 integralRecord.setUid(user.getUid());
                 integralRecord.setLinkType(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_SYSTEM);
                 integralRecord.setTitle(IntegralRecordConstants.BROKERAGE_RECORD_TITLE_SYSTEM);
-                integralRecord.setIntegral(request.getIntegralValue());
+                integralRecord.setIntegral(integralValue);
                 integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
                 if (request.getIntegralType() == 1) {// 增加
                     integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD);
-                    integralRecord.setBalance(user.getIntegral() + request.getIntegralValue());
+                    integralRecord.setBalance(currentIntegral.add(integralValue));
                     integralRecord.setMark(StrUtil.format("后台操作增加了{}积分", request.getIntegralValue()));
 
-                    operationIntegral(user.getUid(), request.getIntegralValue(), user.getIntegral(), "add");
+                    operationIntegral(user.getUid(), integralValue, currentIntegral, "add");
                 } else {
                     integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB);
-                    integralRecord.setBalance(user.getIntegral() - request.getIntegralValue());
+                    integralRecord.setBalance(currentIntegral.subtract(integralValue));
                     integralRecord.setMark(StrUtil.format("后台操作减少了{}积分", request.getIntegralValue()));
-                    operationIntegral(user.getUid(), request.getIntegralValue(), user.getIntegral(), "sub");
+                    operationIntegral(user.getUid(), integralValue, currentIntegral, "sub");
                 }
                 userIntegralRecordService.save(integralRecord);
             }
@@ -929,7 +931,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      * @return Boolean
      */
     @Override
-    public Boolean operationIntegral(Integer uid, Integer integral, Integer nowIntegral, String type) {
+    public Boolean operationIntegral(Integer uid, BigDecimal integral, BigDecimal nowIntegral, String type) {
         UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
         if (type.equals("add")) {
             updateWrapper.setSql(StrUtil.format("integral = integral + {}", integral));
@@ -1496,18 +1498,22 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      * @return 更新后的用户对象
      */
     @Override
-    public Boolean updateIntegral(User user, Integer integral, String type) {
+    public Boolean updateIntegral(User user, BigDecimal integral, String type) {
         LambdaUpdateWrapper<User> lambdaUpdateWrapper = Wrappers.lambdaUpdate();
         if (type.equals("add")) {
-            lambdaUpdateWrapper.set(User::getIntegral, user.getIntegral() + integral);
+            lambdaUpdateWrapper.set(User::getIntegral, nullToZeroIntegral(user.getIntegral()).add(integral));
         } else {
-            lambdaUpdateWrapper.set(User::getIntegral, user.getIntegral() - integral);
+            lambdaUpdateWrapper.set(User::getIntegral, nullToZeroIntegral(user.getIntegral()).subtract(integral));
         }
         lambdaUpdateWrapper.eq(User::getUid, user.getUid());
         if (type.equals("sub")) {
             lambdaUpdateWrapper.apply(StrUtil.format(" integral - {} >= 0", integral));
         }
         return update(lambdaUpdateWrapper);
+    }
+
+    private BigDecimal nullToZeroIntegral(BigDecimal value) {
+        return ObjectUtil.isNull(value) ? BigDecimal.ZERO : value;
     }
 
     /**

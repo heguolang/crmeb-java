@@ -153,6 +153,9 @@ public class LoginServiceImpl implements LoginService {
             throw new CrmebException("此手机号已注册");
         }
         Integer spreadPid = Optional.ofNullable(registerRequest.getSpreadPid()).orElse(0);
+        if (spreadPid > 0) {
+            validateRegisterSpread(spreadPid);
+        }
         User user = userService.registerPhone(registerRequest.getPhone(), spreadPid);
         user.setPwd(CrmebUtil.encryptPassword(registerRequest.getPassword(), registerRequest.getPhone()));
         user.setUpdateTime(DateUtil.date());
@@ -168,6 +171,28 @@ public class LoginServiceImpl implements LoginService {
         loginResponse.setNikeName(user.getNickname());
         loginResponse.setPhone(user.getPhone());
         return loginResponse;
+    }
+
+    /**
+     * 注册时校验推荐人（填写了推荐人ID则必须可绑定）
+     */
+    private void validateRegisterSpread(Integer spreadPid) {
+        String isOpen = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_IS_OPEN);
+        if (StrUtil.isBlank(isOpen) || "0".equals(isOpen)) {
+            throw new CrmebException("分销功能未开启，无法绑定推荐人");
+        }
+        User spreadUser = userService.getById(spreadPid);
+        if (ObjectUtil.isNull(spreadUser) || !Boolean.TRUE.equals(spreadUser.getStatus())) {
+            throw new CrmebException("推荐人ID不存在或已禁用");
+        }
+        if (!Boolean.TRUE.equals(spreadUser.getIsPromoter())) {
+            throw new CrmebException("该推荐人不是分销员，无法绑定");
+        }
+        User tempUser = new User();
+        tempUser.setSpreadUid(0);
+        if (!userService.checkBingSpread(tempUser, spreadPid, "new")) {
+            throw new CrmebException("推荐人绑定失败，请检查推荐人ID");
+        }
     }
 
     /**

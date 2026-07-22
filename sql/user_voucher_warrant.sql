@@ -52,14 +52,19 @@ CREATE TABLE IF NOT EXISTS `eb_user_warrant_record` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户权证记录表';
 
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
-SELECT 'integral_to_voucher_ratio', '100', '多少积分=1消费券', 0
+SELECT 'integral_to_voucher_ratio', '100', '多少积分=1消费券（主动兑换）', 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'integral_to_voucher_ratio');
 
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
-SELECT 'integral_daily_release_ratio', '10', '每日强制释放当前积分的百分比', 0
+SELECT 'integral_daily_release_ratio', '1', '每日强制释放当前积分的百分比', 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'integral_daily_release_ratio');
+
+INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
+SELECT 'integral_daily_release_exchange_ratio', '1', '每日释放：多少积分=1消费券', 0
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'integral_daily_release_exchange_ratio');
 
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
 SELECT 'voucher_to_balance_ratio', '10', '多少消费券=1元余额', 0

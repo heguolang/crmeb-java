@@ -20,11 +20,14 @@ public class VoucherWarrantConfigRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty(value = "多少积分=1消费券")
+    @ApiModelProperty(value = "多少积分=1消费券（主动兑换）")
     private String integralToVoucherRatio;
 
     @ApiModelProperty(value = "每日强制释放当前积分的百分比")
     private String integralDailyReleaseRatio;
+
+    @ApiModelProperty(value = "每日释放：多少积分=1消费券")
+    private String integralDailyReleaseExchangeRatio;
 
     @ApiModelProperty(value = "多少消费券=1元余额")
     private String voucherToBalanceRatio;

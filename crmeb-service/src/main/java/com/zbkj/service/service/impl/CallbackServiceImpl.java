@@ -37,6 +37,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.util.*;
@@ -182,7 +183,7 @@ public class CallbackServiceImpl implements CallbackService {
                     storeOrder.setUpdateTime(DateUtil.date());
                     storeOrderService.updateById(storeOrder);
                     if (storeOrder.getUseIntegral() > 0) {
-                        userService.updateIntegral(user, storeOrder.getUseIntegral(), "sub");
+                        userService.updateIntegral(user, BigDecimal.valueOf(storeOrder.getUseIntegral()), "sub");
                     }
                     wechatPayInfoService.updateById(wechatPayInfo);
 

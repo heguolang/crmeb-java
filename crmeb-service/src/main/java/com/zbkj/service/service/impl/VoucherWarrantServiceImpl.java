@@ -96,12 +96,12 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         }
         // 只兑换整份：向下取整
         int exchangeTimes = useIntegral / ratio.intValue();
-        int realIntegral = exchangeTimes * ratio.intValue();
+        BigDecimal realIntegral = BigDecimal.valueOf(exchangeTimes).multiply(ratio);
         BigDecimal voucherAmount = BigDecimal.valueOf(exchangeTimes);
-        if (realIntegral <= 0 || voucherAmount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (realIntegral.compareTo(BigDecimal.ZERO) <= 0 || voucherAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new CrmebException("兑换结果为0，请调整积分数");
         }
-        if (user.getIntegral() < realIntegral) {
+        if (nullToZero(user.getIntegral()).compareTo(realIntegral) < 0) {
             throw new CrmebException("积分不足");
         }
         return doIntegralToVoucher(user, realIntegral, voucherAmount, VoucherRecordConstants.LINK_TYPE_EXCHANGE,
@@ -209,16 +209,17 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             throw new CrmebException(StrUtil.format("兑换后权证不足0.001，至少需要{}积分",
                     BigDecimal.valueOf(ratio).multiply(new BigDecimal("0.001")).setScale(0, RoundingMode.UP).intValue()));
         }
-        if (user.getIntegral() < useIntegral) {
+        BigDecimal useIntegralDecimal = BigDecimal.valueOf(useIntegral);
+        if (nullToZero(user.getIntegral()).compareTo(useIntegralDecimal) < 0) {
             throw new CrmebException("积分不足");
         }
 
         Boolean execute = transactionTemplate.execute(e -> {
             User fresh = userService.getById(user.getUid());
-            if (fresh.getIntegral() < useIntegral) {
+            if (nullToZero(fresh.getIntegral()).compareTo(useIntegralDecimal) < 0) {
                 throw new CrmebException("积分不足");
             }
-            if (!userService.operationIntegral(fresh.getUid(), useIntegral, fresh.getIntegral(), "sub")) {
+            if (!userService.operationIntegral(fresh.getUid(), useIntegralDecimal, nullToZero(fresh.getIntegral()), "sub")) {
                 throw new CrmebException("扣减积分失败");
             }
             if (!userService.operationWarrant(fresh.getUid(), warrantAmount, nullToZero(fresh.getWarrant()), "add")) {
@@ -233,8 +234,8 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             integralRecord.setLinkType(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_SYSTEM);
             integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB);
             integralRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_INTEGRAL);
-            integralRecord.setIntegral(useIntegral);
-            integralRecord.setBalance(fresh.getIntegral() - useIntegral);
+            integralRecord.setIntegral(useIntegralDecimal);
+            integralRecord.setBalance(nullToZero(fresh.getIntegral()).subtract(useIntegralDecimal));
             integralRecord.setMark(StrUtil.format("积分{}兑换权证{}", useIntegral, warrantAmount));
             integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
             integralRecord.setCreateTime(now);
@@ -353,14 +354,14 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             logger.info("消费券权证功能已关闭，跳过每日释放");
             return;
         }
-        BigDecimal releasePercent = getDecimalConfig(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO, "10");
-        BigDecimal ratio = getDecimalConfig(SysConfigConstants.CONFIG_KEY_INTEGRAL_TO_VOUCHER_RATIO, "100");
-        if (releasePercent.compareTo(BigDecimal.ZERO) <= 0 || ratio.compareTo(BigDecimal.ZERO) <= 0) {
-            logger.warn("每日释放比例或兑换比例配置无效，跳过");
+        BigDecimal releasePercent = getDecimalConfig(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO, "1");
+        BigDecimal exchangeRatio = getDecimalConfig(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_EXCHANGE_RATIO, "1");
+        if (releasePercent.compareTo(BigDecimal.ZERO) <= 0 || exchangeRatio.compareTo(BigDecimal.ZERO) <= 0) {
+            logger.warn("每日释放百分比或释放兑换比例配置无效，跳过");
             return;
         }
 
-        int ratioInt = ratio.intValue();
+        BigDecimal minRelease = new BigDecimal("0.01");
         int pageSize = 200;
         int pageNo = 1;
         while (true) {
@@ -378,31 +379,32 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
                     if (userVoucherRecordService.existsTodayByUidAndLinkType(user.getUid(), VoucherRecordConstants.LINK_TYPE_DAILY_RELEASE)) {
                         continue;
                     }
-                    int releaseIntegral = BigDecimal.valueOf(user.getIntegral())
+                    BigDecimal currentIntegral = nullToZero(user.getIntegral());
+                    // 释放积分 = 当前积分 × 日释放百分比 ÷ 100
+                    BigDecimal releaseIntegral = currentIntegral
                             .multiply(releasePercent)
-                            .divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN)
-                            .intValue();
-                    if (releaseIntegral < ratioInt) {
+                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.DOWN);
+                    if (releaseIntegral.compareTo(minRelease) < 0) {
                         continue;
                     }
-                    int exchangeTimes = releaseIntegral / ratioInt;
-                    int realIntegral = exchangeTimes * ratioInt;
-                    BigDecimal voucherAmount = BigDecimal.valueOf(exchangeTimes);
-                    if (realIntegral <= 0) {
+                    // 消费券 = 释放积分 ÷ 释放兑换比例（独立于主动兑换比例）
+                    BigDecimal voucherAmount = releaseIntegral.divide(exchangeRatio, 2, RoundingMode.DOWN);
+                    if (voucherAmount.compareTo(BigDecimal.ZERO) <= 0) {
                         continue;
                     }
                     User fresh = userService.getById(user.getUid());
-                    if (ObjectUtil.isNull(fresh) || fresh.getIntegral() < realIntegral) {
+                    if (ObjectUtil.isNull(fresh) || nullToZero(fresh.getIntegral()).compareTo(releaseIntegral) < 0) {
                         continue;
                     }
                     // 二次幂等，避免并发重复释放
                     if (userVoucherRecordService.existsTodayByUidAndLinkType(fresh.getUid(), VoucherRecordConstants.LINK_TYPE_DAILY_RELEASE)) {
                         continue;
                     }
-                    doIntegralToVoucher(fresh, realIntegral, voucherAmount,
+                    doIntegralToVoucher(fresh, releaseIntegral, voucherAmount,
                             VoucherRecordConstants.LINK_TYPE_DAILY_RELEASE,
                             VoucherRecordConstants.TITLE_DAILY_RELEASE,
-                            StrUtil.format("每日释放比例{}%，释放积分{}", releasePercent, realIntegral));
+                            StrUtil.format("每日释放比例{}%，释放兑换{}积分=1消费券，释放积分{}",
+                                    releasePercent, exchangeRatio, releaseIntegral));
                 } catch (Exception ex) {
                     logger.error("每日积分释放失败 uid={}", user.getUid(), ex);
                 }
@@ -418,7 +420,8 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
     public VoucherWarrantConfigResponse getConfig() {
         VoucherWarrantConfigResponse response = new VoucherWarrantConfigResponse();
         response.setIntegralToVoucherRatio(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_TO_VOUCHER_RATIO), "100"));
-        response.setIntegralDailyReleaseRatio(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO), "10"));
+        response.setIntegralDailyReleaseRatio(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO), "1"));
+        response.setIntegralDailyReleaseExchangeRatio(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_EXCHANGE_RATIO), "1"));
         response.setVoucherToBalanceRatio(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_VOUCHER_TO_BALANCE_RATIO), "10"));
         response.setWarrantNeedVoucher(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_VOUCHER), "5"));
         response.setWarrantNeedIntegral(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_INTEGRAL), "100"));
@@ -430,6 +433,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
     public Boolean saveConfig(VoucherWarrantConfigRequest request) {
         validatePositiveNumber(request.getIntegralToVoucherRatio(), "积分兑换消费券比例");
         validatePercent(request.getIntegralDailyReleaseRatio(), "每日释放百分比");
+        validatePositiveNumber(request.getIntegralDailyReleaseExchangeRatio(), "每日释放兑换比例");
         validatePositiveNumber(request.getVoucherToBalanceRatio(), "消费券兑换余额比例");
         validatePositiveNumber(request.getWarrantNeedVoucher(), "消费券兑1权证所需数量");
         validatePositiveNumber(request.getWarrantNeedIntegral(), "积分兑1权证所需数量");
@@ -439,6 +443,9 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         }
         if (StrUtil.isNotBlank(request.getIntegralDailyReleaseRatio())) {
             systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO, request.getIntegralDailyReleaseRatio().trim());
+        }
+        if (StrUtil.isNotBlank(request.getIntegralDailyReleaseExchangeRatio())) {
+            systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_EXCHANGE_RATIO, request.getIntegralDailyReleaseExchangeRatio().trim());
         }
         if (StrUtil.isNotBlank(request.getVoucherToBalanceRatio())) {
             systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_VOUCHER_TO_BALANCE_RATIO, request.getVoucherToBalanceRatio().trim());
@@ -553,14 +560,14 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         return userService.updateById(update);
     }
 
-    private Boolean doIntegralToVoucher(User user, int realIntegral, BigDecimal voucherAmount,
+    private Boolean doIntegralToVoucher(User user, BigDecimal realIntegral, BigDecimal voucherAmount,
                                         String linkType, String title, String markSuffix) {
         Boolean execute = transactionTemplate.execute(e -> {
             User fresh = userService.getById(user.getUid());
-            if (ObjectUtil.isNull(fresh) || fresh.getIntegral() < realIntegral) {
+            if (ObjectUtil.isNull(fresh) || nullToZero(fresh.getIntegral()).compareTo(realIntegral) < 0) {
                 throw new CrmebException("积分不足");
             }
-            if (!userService.operationIntegral(fresh.getUid(), realIntegral, fresh.getIntegral(), "sub")) {
+            if (!userService.operationIntegral(fresh.getUid(), realIntegral, nullToZero(fresh.getIntegral()), "sub")) {
                 throw new CrmebException("扣减积分失败");
             }
             if (!userService.operationVoucher(fresh.getUid(), voucherAmount, nullToZero(fresh.getConsumeVoucher()), "add")) {
@@ -575,7 +582,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB);
             integralRecord.setTitle(title);
             integralRecord.setIntegral(realIntegral);
-            integralRecord.setBalance(fresh.getIntegral() - realIntegral);
+            integralRecord.setBalance(nullToZero(fresh.getIntegral()).subtract(realIntegral));
             integralRecord.setMark(StrUtil.format("{}，扣减积分{}", markSuffix, realIntegral));
             integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
             integralRecord.setCreateTime(now);

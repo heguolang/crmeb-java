@@ -181,7 +181,7 @@ public class WeChatPayServiceImpl implements WeChatPayService {
                 storeOrderService.updatePaid(orderNo);
                 wechatPayInfoService.updateById(wechatPayInfo);
                 if (storeOrder.getUseIntegral() > 0) {
-                    userService.updateIntegral(user, storeOrder.getUseIntegral(), "sub");
+                    userService.updateIntegral(user, BigDecimal.valueOf(storeOrder.getUseIntegral()), "sub");
                 }
 //                if (storeOrder.getType().equals(1)) {
 //                    PayComponentOrder componentOrder = componentOrderService.getByOrderNo(orderNo);

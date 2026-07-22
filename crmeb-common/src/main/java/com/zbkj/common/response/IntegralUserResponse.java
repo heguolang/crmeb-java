@@ -42,7 +42,7 @@ public class IntegralUserResponse implements Serializable {
 //    private BigDecimal nowMoney;
 //
     @ApiModelProperty(value = "用户剩余积分")
-    private Integer integral;
+    private BigDecimal integral;
 //
 //    @ApiModelProperty(value = "连续签到天数")
 //    private Integer signNum;
@@ -66,15 +66,15 @@ public class IntegralUserResponse implements Serializable {
 //    private Boolean isYesterdaySign;
 
     @ApiModelProperty(value = "累计总积分")
-    private Integer sumIntegral;
+    private BigDecimal sumIntegral;
 
     @ApiModelProperty(value = "累计抵扣积分")
-    private Integer deductionIntegral;
+    private BigDecimal deductionIntegral;
 
 //    @ApiModelProperty(value = "今日获得累计积分")
 //    private Integer nowIntegral;
 
     @ApiModelProperty(value = "冻结的积分")
-    private Integer frozenIntegral;
+    private BigDecimal frozenIntegral;
 
 }

@@ -328,6 +328,9 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         if (ObjectUtil.isNull(request.getGiveIntegral())) {
             storeProduct.setGiveIntegral(0);
         }
+        if (ObjectUtil.isNull(request.getIsIntegral())) {
+            storeProduct.setIsIntegral(false);
+        }
         if (ObjectUtil.isNull(request.getFicti())) {
             storeProduct.setFicti(0);
         }
@@ -489,6 +492,10 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         storeProduct.setOtPrice(minAttrValue.getOtPrice());
         storeProduct.setCost(minAttrValue.getCost());
         storeProduct.setStock(attrValueAddRequestList.stream().mapToInt(StoreProductAttrValueAddRequest::getStock).sum());
+
+        if (ObjectUtil.isNull(storeProduct.getIsIntegral())) {
+            storeProduct.setIsIntegral(false);
+        }
 
         // attr部分
         List<StoreProductAttrAddRequest> addRequestList = storeProductRequest.getAttr();

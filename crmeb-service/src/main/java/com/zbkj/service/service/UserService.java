@@ -174,6 +174,18 @@ public interface UserService extends IService<User> {
     User registerPhone(String phone, Integer spreadUid);
 
     /**
+     * 应用注册默认配置（是否默认推广员、默认会员等级）
+     * @param user 新用户对象（保存前调用）
+     */
+    void applyRegisterDefaults(User user);
+
+    /**
+     * 写入注册默认会员等级记录（用户已落库后调用）
+     * @param user 已保存用户
+     */
+    void saveRegisterDefaultLevelRecord(User user);
+
+    /**
      * 检测能否绑定关系
      * @param user 当前用户
      * @param spreadUid 推广员Uid

@@ -113,6 +113,8 @@ public class SystemTeamLevelConfigServiceImpl extends ServiceImpl<SystemTeamLeve
         String maxDepth = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_TEAM_BROKERAGE_MAX_DEPTH);
         response.setTeamBrokerageStatus(parseIntOrDefault(status, 0));
         response.setTeamBrokerageMaxDepth(parseIntOrDefault(maxDepth, 0));
+        String creditTiming = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_TEAM_BROKERAGE_CREDIT_TIMING);
+        response.setTeamBrokerageCreditTiming(parseIntOrDefault(creditTiming, 1));
         return response;
     }
 
@@ -124,6 +126,10 @@ public class SystemTeamLevelConfigServiceImpl extends ServiceImpl<SystemTeamLeve
         systemConfigService.updateOrSaveValueByName(
                 SysConfigConstants.CONFIG_KEY_TEAM_BROKERAGE_MAX_DEPTH,
                 request.getTeamBrokerageMaxDepth().toString());
+        Integer creditTiming = ObjectUtil.defaultIfNull(request.getTeamBrokerageCreditTiming(), 1);
+        systemConfigService.updateOrSaveValueByName(
+                SysConfigConstants.CONFIG_KEY_TEAM_BROKERAGE_CREDIT_TIMING,
+                creditTiming.toString());
         return Boolean.TRUE;
     }
 

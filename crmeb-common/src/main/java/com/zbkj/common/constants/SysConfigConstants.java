@@ -47,6 +47,20 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_STORE_BROKERAGE_IS_BUBBLE = "store_brokerage_is_bubble";
     /** 判断是否分销消费门槛 */
     public static final String CONFIG_KEY_STORE_BROKERAGE_QUOTA = "store_brokerage_quota";
+    /** 用户首次注册/登录是否默认成为推广员：0-否，1-是 */
+    public static final String CONFIG_KEY_REGISTER_DEFAULT_IS_PROMOTER = "register_default_is_promoter";
+    /** 用户首次注册/登录默认会员等级ID，0表示不设置 */
+    public static final String CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL = "register_default_user_level";
+    /** 积分到账方式：1-支付订单到账，2-订单完成（收货）后到账 */
+    public static final String CONFIG_KEY_INTEGRAL_CREDIT_TIMING = "integral_credit_timing";
+    /** 分销佣金到账方式：1-支付订单到账，2-订单完成（收货）后到账 */
+    public static final String CONFIG_KEY_BROKERAGE_CREDIT_TIMING = "brokerage_credit_timing";
+    /** 团队奖到账方式：1-支付订单到账，2-订单完成（收货）后到账 */
+    public static final String CONFIG_KEY_TEAM_BROKERAGE_CREDIT_TIMING = "team_brokerage_credit_timing";
+    /** 到账方式-支付订单到账 */
+    public static final String CREDIT_TIMING_ON_PAY = "1";
+    /** 到账方式-订单完成到账 */
+    public static final String CREDIT_TIMING_ON_COMPLETE = "2";
     /** 是否启用团队极差奖 */
     public static final String CONFIG_KEY_TEAM_BROKERAGE_STATUS = "team_brokerage_status";
     /** 团队奖向上追溯层数，0=不限 */

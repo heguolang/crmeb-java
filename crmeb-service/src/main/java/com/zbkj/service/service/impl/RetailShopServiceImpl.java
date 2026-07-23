@@ -8,6 +8,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.zbkj.common.exception.CrmebException;
+import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.page.CommonPage;
@@ -146,6 +147,12 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
         response.setStoreBrokerageQuota(Integer.parseInt(systemConfigService.getValueByKey("store_brokerage_quota")));
         response.setStoreBrokerageIsBubble(Integer.parseInt(systemConfigService.getValueByKey("store_brokerage_is_bubble")));
         response.setBrokerageBindind(Integer.parseInt(systemConfigService.getValueByKey("brokerage_bindind")));
+        String registerDefaultIsPromoter = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_IS_PROMOTER);
+        response.setRegisterDefaultIsPromoter(StrUtil.isBlank(registerDefaultIsPromoter) ? 0 : Integer.parseInt(registerDefaultIsPromoter));
+        String registerDefaultUserLevel = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL);
+        response.setRegisterDefaultUserLevel(StrUtil.isBlank(registerDefaultUserLevel) ? 0 : Integer.parseInt(registerDefaultUserLevel));
+        String brokerageCreditTiming = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING);
+        response.setBrokerageCreditTiming(StrUtil.isBlank(brokerageCreditTiming) ? 1 : Integer.parseInt(brokerageCreditTiming));
         return response;
     }
 
@@ -181,6 +188,12 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
         systemConfigService.updateOrSaveValueByName("brokerage_bindind", retailShopRequest.getBrokerageBindind().toString());
         systemConfigService.updateOrSaveValueByName("store_brokerage_quota", retailShopRequest.getStoreBrokerageQuota().toString());
         systemConfigService.updateOrSaveValueByName("store_brokerage_is_bubble", retailShopRequest.getStoreBrokerageIsBubble().toString());
+        Integer registerDefaultIsPromoter = ObjectUtil.defaultIfNull(retailShopRequest.getRegisterDefaultIsPromoter(), 0);
+        Integer registerDefaultUserLevel = ObjectUtil.defaultIfNull(retailShopRequest.getRegisterDefaultUserLevel(), 0);
+        systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_IS_PROMOTER, registerDefaultIsPromoter.toString());
+        systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL, registerDefaultUserLevel.toString());
+        Integer brokerageCreditTiming = ObjectUtil.defaultIfNull(retailShopRequest.getBrokerageCreditTiming(), 1);
+        systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING, brokerageCreditTiming.toString());
         return true;
     }
 

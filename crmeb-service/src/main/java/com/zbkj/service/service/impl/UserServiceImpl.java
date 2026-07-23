@@ -811,6 +811,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             user.setSpreadTime(nowDate);
         }
 
+        // 注册默认：推广员 / 会员等级
+        applyRegisterDefaults(user);
+
         // 查询是否有新人注册赠送优惠券
         List<StoreCouponUser> couponUserList = CollUtil.newArrayList();
         List<StoreCoupon> couponList = storeCouponService.findRegisterList();
@@ -845,6 +848,8 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             if (check) {
                 updateSpreadCountByUid(spreadUid, "add");
             }
+            // 默认等级记录
+            saveRegisterDefaultLevelRecord(user);
             // 赠送客户优惠券
             if (CollUtil.isNotEmpty(couponUserList)) {
                 couponUserList.forEach(couponUser -> couponUser.setUid(user.getUid()));
@@ -857,6 +862,67 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             throw new CrmebException("创建用户失败!");
         }
         return user;
+    }
+
+    /**
+     * 应用注册默认配置（是否默认推广员、默认会员等级）
+     */
+    @Override
+    public void applyRegisterDefaults(User user) {
+        if (ObjectUtil.isNull(user)) {
+            return;
+        }
+        String isPromoterCfg = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_IS_PROMOTER);
+        if ("1".equals(isPromoterCfg)) {
+            user.setIsPromoter(true);
+            if (ObjectUtil.isNull(user.getPromoterTime())) {
+                user.setPromoterTime(CrmebDateUtil.nowDateTime());
+            }
+        }
+        String levelCfg = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL);
+        if (StrUtil.isBlank(levelCfg)) {
+            return;
+        }
+        Integer levelId;
+        try {
+            levelId = Integer.parseInt(levelCfg);
+        } catch (Exception e) {
+            return;
+        }
+        if (ObjectUtil.isNull(levelId) || levelId <= 0) {
+            return;
+        }
+        SystemUserLevel systemUserLevel = systemUserLevelService.getByLevelId(levelId);
+        if (ObjectUtil.isNull(systemUserLevel) || Boolean.TRUE.equals(systemUserLevel.getIsDel())
+                || Boolean.FALSE.equals(systemUserLevel.getIsShow())) {
+            return;
+        }
+        user.setLevel(systemUserLevel.getId());
+    }
+
+    /**
+     * 写入注册默认会员等级记录
+     */
+    @Override
+    public void saveRegisterDefaultLevelRecord(User user) {
+        if (ObjectUtil.isNull(user) || ObjectUtil.isNull(user.getUid())
+                || ObjectUtil.isNull(user.getLevel()) || user.getLevel() <= 0) {
+            return;
+        }
+        SystemUserLevel systemUserLevel = systemUserLevelService.getByLevelId(user.getLevel());
+        if (ObjectUtil.isNull(systemUserLevel)) {
+            return;
+        }
+        UserLevel newLevel = new UserLevel();
+        newLevel.setUid(user.getUid());
+        newLevel.setLevelId(systemUserLevel.getId());
+        newLevel.setGrade(systemUserLevel.getGrade());
+        newLevel.setStatus(true);
+        newLevel.setMark(StrUtil.format("尊敬的用户 {},在{}注册默认成为会员等级{}", user.getNickname(), CrmebDateUtil.nowDateTimeStr(), systemUserLevel.getName()));
+        newLevel.setDiscount(systemUserLevel.getDiscount());
+        newLevel.setGiveIntegral(systemUserLevel.getGiveIntegral());
+        newLevel.setCreateTime(CrmebDateUtil.nowDateTime());
+        userLevelService.save(newLevel);
     }
 
     /**

@@ -126,6 +126,21 @@ public class SystemConfigController {
         }
         return CommonResult.failed("清除失败");
     }
+
+    @PreAuthorize("hasAuthority('admin:system:config:info')")
+    @ApiOperation(value = "根据key获取配置")
+    @RequestMapping(value = "/getuniq", method = RequestMethod.GET)
+    public CommonResult<String> getUniq(@RequestParam(value = "key") String key) {
+        return CommonResult.success(systemConfigService.getValueByKey(key));
+    }
+
+    @PreAuthorize("hasAuthority('admin:system:config:save:form')")
+    @ApiOperation(value = "根据key保存配置")
+    @RequestMapping(value = "/saveuniq", method = RequestMethod.POST)
+    public CommonResult<Boolean> saveUniq(@RequestParam(value = "key") String key,
+                                          @RequestParam(value = "value") String value) {
+        return CommonResult.success(systemConfigService.updateOrSaveValueByName(key, value));
+    }
 }
 
 

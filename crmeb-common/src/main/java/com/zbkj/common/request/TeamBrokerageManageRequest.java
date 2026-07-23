@@ -27,4 +27,8 @@ public class TeamBrokerageManageRequest implements Serializable {
     @NotNull(message = "追溯层数不能为空")
     @Min(value = 0, message = "追溯层数不能小于0")
     private Integer teamBrokerageMaxDepth;
+
+    @ApiModelProperty(value = "团队奖到账方式：1-支付订单到账，2-订单完成到账")
+    @Range(min = 1, max = 2, message = "团队奖到账方式只能为1或2")
+    private Integer teamBrokerageCreditTiming;
 }

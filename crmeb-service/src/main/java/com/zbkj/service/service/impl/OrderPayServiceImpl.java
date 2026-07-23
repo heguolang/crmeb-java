@@ -290,13 +290,22 @@ public class OrderPayServiceImpl implements OrderPayService {
         recordList.addAll(assignSelfBrokerage(storeOrder, user, brokerageLevelId, matchedBrokerageLevel));
         recordList.addAll(teamBrokerageService.assignTeamBrokerage(storeOrder));
 
-        // 支付成功直接到账：赠送积分记为已完成，并累计待入账金额
+        // 到账方式：1-支付到账，2-订单完成（收货）到账
+        boolean integralOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_INTEGRAL_CREDIT_TIMING);
+        boolean brokerageOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING);
+        boolean teamOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_TEAM_BROKERAGE_CREDIT_TIMING);
+
+        // 按配置决定积分是否支付即到账
         final BigDecimal integralBeforeCredit = ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO);
         BigDecimal integralBalanceCursor = integralBeforeCredit;
         BigDecimal totalIntegralAddTemp = BigDecimal.ZERO;
         if (CollUtil.isNotEmpty(integralList)) {
             for (UserIntegralRecord integralRecord : integralList) {
                 if (!IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD.equals(integralRecord.getType())) {
+                    continue;
+                }
+                if (!integralOnPay) {
+                    // 订单完成到账：保持创建状态，等待收货任务入账
                     continue;
                 }
                 BigDecimal addAmount = ObjectUtil.defaultIfNull(integralRecord.getIntegral(), BigDecimal.ZERO);
@@ -309,10 +318,17 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
         final BigDecimal totalIntegralAdd = totalIntegralAddTemp;
 
-        // 支付成功直接到账：佣金/团队奖记为已完成
+        // 按配置决定分销佣金 / 团队奖是否支付即到账
+        List<UserBrokerageRecord> creditNowBrokerageList = CollUtil.newArrayList();
         if (CollUtil.isNotEmpty(recordList)) {
             Map<Integer, BigDecimal> brokerageBalanceMap = new HashMap<>();
             for (UserBrokerageRecord brokerageRecord : recordList) {
+                boolean isTeam = isTeamBrokerageRecord(brokerageRecord);
+                boolean onPay = isTeam ? teamOnPay : brokerageOnPay;
+                if (!onPay) {
+                    // 订单完成到账：保持创建状态
+                    continue;
+                }
                 BigDecimal before = brokerageBalanceMap.computeIfAbsent(brokerageRecord.getUid(), uid -> {
                     User brokerageUser = userService.getById(uid);
                     return ObjectUtil.isNotNull(brokerageUser)
@@ -324,6 +340,7 @@ public class OrderPayServiceImpl implements OrderPayService {
                 brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
                 brokerageRecord.setFrozenTime(0);
                 brokerageBalanceMap.put(brokerageRecord.getUid(), after);
+                creditNowBrokerageList.add(brokerageRecord);
             }
         }
 
@@ -372,7 +389,7 @@ public class OrderPayServiceImpl implements OrderPayService {
                 userBrokerageRecordService.saveBatch(recordList);
             }
 
-            // 赠送积分支付成功直接到账
+            // 赠送积分：支付即到账
             if (totalIntegralAdd.compareTo(BigDecimal.ZERO) > 0) {
                 Boolean integralOk = userService.operationIntegral(user.getUid(), totalIntegralAdd, integralBeforeCredit, "add");
                 if (!Boolean.TRUE.equals(integralOk)) {
@@ -380,10 +397,10 @@ public class OrderPayServiceImpl implements OrderPayService {
                 }
             }
 
-            // 佣金/团队奖支付成功直接到账
-            if (CollUtil.isNotEmpty(recordList)) {
+            // 佣金/团队奖：支付即到账（按配置筛选后的记录）
+            if (CollUtil.isNotEmpty(creditNowBrokerageList)) {
                 Map<Integer, BigDecimal> brokerageCursor = new HashMap<>();
-                for (UserBrokerageRecord br : recordList) {
+                for (UserBrokerageRecord br : creditNowBrokerageList) {
                     BigDecimal before = brokerageCursor.computeIfAbsent(br.getUid(), uid -> {
                         User bu = userService.getById(uid);
                         return ObjectUtil.isNotNull(bu)
@@ -1210,6 +1227,23 @@ public class OrderPayServiceImpl implements OrderPayService {
             temMap.put("thing6", "您的订单已支付成功");
             templateMessageService.pushMiniTemplateMessage(payNotification.getRoutineId(), temMap, userToken.getToken());
         }
+    }
+
+    /**
+     * 是否支付即到账（默认是）
+     */
+    private boolean isPayCreditTiming(String configKey) {
+        String value = systemConfigService.getValueByKey(configKey);
+        return StrUtil.isBlank(value) || SysConfigConstants.CREDIT_TIMING_ON_PAY.equals(value);
+    }
+
+    /**
+     * 是否团队奖记录
+     */
+    private boolean isTeamBrokerageRecord(UserBrokerageRecord record) {
+        Integer level = record.getBrokerageLevel();
+        return BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF.equals(level)
+                || BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER.equals(level);
     }
 
     /**

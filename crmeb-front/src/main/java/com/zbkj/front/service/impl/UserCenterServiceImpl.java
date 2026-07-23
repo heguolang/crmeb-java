@@ -838,6 +838,7 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
             user.setAccount(request.getPhone());
             user.setSpreadUid(0);
             user.setPwd(CommonUtil.createPwd(request.getPhone()));
+            userService.applyRegisterDefaults(user);
         } else {// 已有账户，关联到之前得账户即可
             // 查询是否用对应得token
             int type = 0;
@@ -874,6 +875,7 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
                     userService.updateSpreadCountByUid(registerThirdUserRequest.getSpreadPid(), "add");
                 }
                 userService.save(finalUser);
+                userService.saveRegisterDefaultLevelRecord(finalUser);
                 // 赠送新人券
                 giveNewPeopleCoupon(finalUser.getUid());
             }

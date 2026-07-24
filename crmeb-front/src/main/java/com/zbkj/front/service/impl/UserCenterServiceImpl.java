@@ -448,39 +448,46 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         LoginResponse loginResponse = new LoginResponse();
         if (ObjectUtil.isNotNull(userToken)) {// 已存在，正常登录
             User user = userService.getById(userToken.getUid());
-            if (!user.getStatus()) {
-                throw new CrmebException("当前账户已禁用，请联系管理员！");
-            }
-
-            // 记录最后一次登录时间
-            user.setLastLoginTime(CrmebDateUtil.nowDateTime());
-            Boolean execute = transactionTemplate.execute(e -> {
-                // 分销绑定
-                if (userService.checkBingSpread(user, spreadUid, "old")) {
-                    user.setSpreadUid(spreadUid);
-                    user.setSpreadTime(CrmebDateUtil.nowDateTime());
-                    // 处理新旧推广人数据
-                    userService.updateSpreadCountByUid(spreadUid, "add");
+            // 用户表已清空但 token 绑定仍在：删除孤儿记录，走重新注册
+            if (ObjectUtil.isNull(user)) {
+                logger.warn(StrUtil.format("公众号登录发现孤儿token，openid={}, uid={}，已清理并走注册流程",
+                        oauthToken.getOpenId(), userToken.getUid()));
+                userTokenService.removeById(userToken.getId());
+            } else {
+                if (!user.getStatus()) {
+                    throw new CrmebException("当前账户已禁用，请联系管理员！");
                 }
-                user.setUpdateTime(DateUtil.date());
-                userService.updateById(user);
-                return Boolean.TRUE;
-            });
-            if (!execute) {
-                logger.error(StrUtil.format("公众号登录绑定分销关系失败，uid={},spreadUid={}", user.getUid(), spreadUid));
+
+                // 记录最后一次登录时间
+                user.setLastLoginTime(CrmebDateUtil.nowDateTime());
+                Boolean execute = transactionTemplate.execute(e -> {
+                    // 分销绑定
+                    if (userService.checkBingSpread(user, spreadUid, "old")) {
+                        user.setSpreadUid(spreadUid);
+                        user.setSpreadTime(CrmebDateUtil.nowDateTime());
+                        // 处理新旧推广人数据
+                        userService.updateSpreadCountByUid(spreadUid, "add");
+                    }
+                    user.setUpdateTime(DateUtil.date());
+                    userService.updateById(user);
+                    return Boolean.TRUE;
+                });
+                if (!execute) {
+                    logger.error(StrUtil.format("公众号登录绑定分销关系失败，uid={},spreadUid={}", user.getUid(), spreadUid));
+                }
+                try {
+                    String token = tokenComponent.createToken(user);
+                    loginResponse.setToken(token);
+                } catch (Exception e) {
+                    logger.error(StrUtil.format("公众号登录生成token失败，uid={}", user.getUid()));
+                    e.printStackTrace();
+                }
+                loginResponse.setType("login");
+                loginResponse.setUid(user.getUid());
+                loginResponse.setNikeName(user.getNickname());
+                loginResponse.setPhone(user.getPhone());
+                return loginResponse;
             }
-            try {
-                String token = tokenComponent.createToken(user);
-                loginResponse.setToken(token);
-            } catch (Exception e) {
-                logger.error(StrUtil.format("公众号登录生成token失败，uid={}", user.getUid()));
-                e.printStackTrace();
-            }
-            loginResponse.setType("login");
-            loginResponse.setUid(user.getUid());
-            loginResponse.setNikeName(user.getNickname());
-            loginResponse.setPhone(user.getPhone());
-            return loginResponse;
         }
         // 没有用户，走创建用户流程
         // 从微信获取用户信息，存入Redis中，将key返回给前端，前端在下一步绑定手机号的时候下发
@@ -525,39 +532,46 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         LoginResponse loginResponse = new LoginResponse();
         if (ObjectUtil.isNotNull(userToken)) {// 已存在，正常登录
             User user = userService.getById(userToken.getUid());
-            if (!user.getStatus()) {
-                throw new CrmebException("当前账户已禁用，请联系管理员！");
-            }
-            // 记录最后一次登录时间
-            user.setLastLoginTime(CrmebDateUtil.nowDateTime());
-            Boolean execute = transactionTemplate.execute(e -> {
-                // 分销绑定
-                if (userService.checkBingSpread(user, request.getSpreadPid(), "old")) {
-                    user.setSpreadUid(request.getSpreadPid());
-                    user.setSpreadTime(CrmebDateUtil.nowDateTime());
-                    // 处理新旧推广人数据
-                    userService.updateSpreadCountByUid(request.getSpreadPid(), "add");
+            // 用户表已清空但 token 绑定仍在：删除孤儿记录，走重新注册
+            if (ObjectUtil.isNull(user)) {
+                logger.warn(StrUtil.format("小程序登录发现孤儿token，openid={}, uid={}，已清理并走注册流程",
+                        response.getOpenId(), userToken.getUid()));
+                userTokenService.removeById(userToken.getId());
+            } else {
+                if (!user.getStatus()) {
+                    throw new CrmebException("当前账户已禁用，请联系管理员！");
                 }
-                user.setUpdateTime(DateUtil.date());
-                userService.updateById(user);
-                return Boolean.TRUE;
-            });
-            if (!execute) {
-                logger.error(StrUtil.format("小程序登录绑定分销关系失败，uid={},spreadUid={}", user.getUid(), request.getSpreadPid()));
-            }
+                // 记录最后一次登录时间
+                user.setLastLoginTime(CrmebDateUtil.nowDateTime());
+                Boolean execute = transactionTemplate.execute(e -> {
+                    // 分销绑定
+                    if (userService.checkBingSpread(user, request.getSpreadPid(), "old")) {
+                        user.setSpreadUid(request.getSpreadPid());
+                        user.setSpreadTime(CrmebDateUtil.nowDateTime());
+                        // 处理新旧推广人数据
+                        userService.updateSpreadCountByUid(request.getSpreadPid(), "add");
+                    }
+                    user.setUpdateTime(DateUtil.date());
+                    userService.updateById(user);
+                    return Boolean.TRUE;
+                });
+                if (!execute) {
+                    logger.error(StrUtil.format("小程序登录绑定分销关系失败，uid={},spreadUid={}", user.getUid(), request.getSpreadPid()));
+                }
 
-            try {
-                String token = tokenComponent.createToken(user);
-                loginResponse.setToken(token);
-            } catch (Exception e) {
-                logger.error(StrUtil.format("小程序登录生成token失败，uid={}", user.getUid()));
-                e.printStackTrace();
+                try {
+                    String token = tokenComponent.createToken(user);
+                    loginResponse.setToken(token);
+                } catch (Exception e) {
+                    logger.error(StrUtil.format("小程序登录生成token失败，uid={}", user.getUid()));
+                    e.printStackTrace();
+                }
+                loginResponse.setType("login");
+                loginResponse.setUid(user.getUid());
+                loginResponse.setNikeName(user.getNickname());
+                loginResponse.setPhone(user.getPhone());
+                return loginResponse;
             }
-            loginResponse.setType("login");
-            loginResponse.setUid(user.getUid());
-            loginResponse.setNikeName(user.getNickname());
-            loginResponse.setPhone(user.getPhone());
-            return loginResponse;
         }
 
         if (StrUtil.isBlank(request.getNickName()) && StrUtil.isBlank(request.getAvatar()) && StrUtil.isBlank(request.getHeadimgurl())) {

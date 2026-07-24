@@ -130,6 +130,9 @@ public class StoreOrderInfoResponse implements Serializable {
     @ApiModelProperty(value = "用户昵称")
     private String nikeName;
 
+    @ApiModelProperty(value = "用户账号")
+    private String account;
+
     @ApiModelProperty(value = "用户电话")
     private String phone;
 
@@ -139,8 +142,17 @@ public class StoreOrderInfoResponse implements Serializable {
     @ApiModelProperty(value = "提货点")
     private SystemStore systemStore;
 
+    @ApiModelProperty(value = "推广人uid")
+    private Integer spreadUid;
+
     @ApiModelProperty(value = "推广人名称")
     private String spreadName;
+
+    @ApiModelProperty(value = "推广人账号")
+    private String spreadAccount;
+
+    @ApiModelProperty(value = "本单分佣明细")
+    private List<OrderBrokerageInfoResponse> brokerageList;
 
     @ApiModelProperty(value = "商品总价")
     private BigDecimal proTotalPrice;

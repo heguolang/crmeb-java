@@ -152,7 +152,7 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     public CommonPage<StoreOrderDetailResponse> getAdminList(StoreOrderSearchRequest request, PageParamRequest pageParamRequest) {
         Page<Object> startPage = PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
         QueryWrapper<StoreOrder> queryWrapper = new QueryWrapper<>();
-        queryWrapper.select("id", "order_id", "uid", "real_name", "pay_price", "pay_type", "create_time", "status", "refund_status"
+        queryWrapper.select("id", "order_id", "uid", "real_name", "user_phone", "user_address", "pay_price", "pay_type", "create_time", "status", "refund_status"
                 , "refund_reason_wap_img", "refund_reason_wap_explain", "refund_reason_wap", "refund_reason", "refund_reason_time"
                 , "is_del", "combination_id", "pink_id", "seckill_id", "bargain_id", "verify_code", "remark", "paid", "is_system_del"
                 , "shipping_type", "type", "is_alter_price", "pro_total_price", "is_alter_price", "coupon_price");
@@ -308,6 +308,16 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
         //获取订单详情map
         HashMap<Integer, List<StoreOrderInfoOldVo>> orderInfoList = StoreOrderInfoService.getMapInId(orderIdList);
 
+        // 下单用户 & 推广员
+        List<Integer> userIdList = orderList.stream().map(StoreOrder::getUid).filter(ObjectUtil::isNotNull).distinct().collect(Collectors.toList());
+        HashMap<Integer, User> userMap = CollUtil.isEmpty(userIdList) ? new HashMap<>() : userService.getMapListInUid(userIdList);
+        List<Integer> spreadUidList = userMap.values().stream()
+                .map(User::getSpreadUid)
+                .filter(uid -> ObjectUtil.isNotNull(uid) && uid > 0)
+                .distinct()
+                .collect(Collectors.toList());
+        HashMap<Integer, User> spreadMap = CollUtil.isEmpty(spreadUidList) ? new HashMap<>() : userService.getMapListInUid(spreadUidList);
+
         for (StoreOrder storeOrder : orderList) {
             StoreOrderDetailResponse storeOrderItemResponse = new StoreOrderDetailResponse();
             BeanUtils.copyProperties(storeOrder, storeOrderItemResponse);
@@ -322,6 +332,23 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
 
             // 添加订单类型信息
             storeOrderItemResponse.setOrderType(getOrderTypeStr(storeOrder));
+
+            // 下单会员 & 推广员
+            User orderUser = userMap.get(storeOrder.getUid());
+            if (ObjectUtil.isNotNull(orderUser)) {
+                storeOrderItemResponse.setNikeName(orderUser.getNickname());
+                storeOrderItemResponse.setAccount(orderUser.getAccount());
+                storeOrderItemResponse.setPhone(orderUser.getPhone());
+                Integer spreadUid = orderUser.getSpreadUid();
+                storeOrderItemResponse.setSpreadUid(spreadUid);
+                if (ObjectUtil.isNotNull(spreadUid) && spreadUid > 0) {
+                    User spreadUser = spreadMap.get(spreadUid);
+                    if (ObjectUtil.isNotNull(spreadUser)) {
+                        storeOrderItemResponse.setSpreadName(spreadUser.getNickname());
+                        storeOrderItemResponse.setSpreadAccount(spreadUser.getAccount());
+                    }
+                }
+            }
             detailResponseList.add(storeOrderItemResponse);
         }
         return detailResponseList;
@@ -638,12 +665,28 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
         User user = userService.getById(storeOrder.getUid());
         storeOrderInfoResponse.setNikeName(user.getNickname());
         storeOrderInfoResponse.setPhone(user.getPhone());
+        storeOrderInfoResponse.setAccount(user.getAccount());
+        if (ObjectUtil.isNotNull(user.getSpreadUid()) && user.getSpreadUid() > 0) {
+            User spreadByUser = userService.getById(user.getSpreadUid());
+            if (ObjectUtil.isNotNull(spreadByUser)) {
+                storeOrderInfoResponse.setSpreadUid(spreadByUser.getUid());
+                storeOrderInfoResponse.setSpreadName(spreadByUser.getNickname());
+                storeOrderInfoResponse.setSpreadAccount(spreadByUser.getAccount());
+            }
+        }
 
         UserBrokerageRecord brokerageRecord = userBrokerageRecordService.getByLinkIdAndLinkType(orderNo, "order");
-        if (ObjectUtil.isNotNull(brokerageRecord)) {
+        if (ObjectUtil.isNotNull(brokerageRecord) && StrUtil.isBlank(storeOrderInfoResponse.getSpreadName())) {
             User spread = userService.getById(brokerageRecord.getUid());
-            storeOrderInfoResponse.setSpreadName(spread.getNickname());
+            if (ObjectUtil.isNotNull(spread)) {
+                storeOrderInfoResponse.setSpreadUid(spread.getUid());
+                storeOrderInfoResponse.setSpreadName(spread.getNickname());
+                storeOrderInfoResponse.setSpreadAccount(spread.getAccount());
+            }
         }
+
+        // 本单分佣明细（分销奖/团队奖/平级奖等）
+        storeOrderInfoResponse.setBrokerageList(buildOrderBrokerageList(orderNo));
 
         storeOrderInfoResponse.setProTotalPrice(storeOrder.getTotalPrice().subtract(storeOrder.getTotalPostage()));
 
@@ -651,6 +694,88 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
         storeOrderInfoResponse.setUserPhone(CrmebUtil.maskMobile(storeOrderInfoResponse.getUserPhone()));
         storeOrderInfoResponse.setPhone(CrmebUtil.maskMobile(storeOrderInfoResponse.getPhone()));
         return storeOrderInfoResponse;
+    }
+
+    /**
+     * 组装订单分佣明细
+     */
+    private List<OrderBrokerageInfoResponse> buildOrderBrokerageList(String orderNo) {
+        List<UserBrokerageRecord> recordList = userBrokerageRecordService.findListByLinkIdAndLinkType(
+                orderNo, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        List<OrderBrokerageInfoResponse> result = new ArrayList<>();
+        if (CollUtil.isEmpty(recordList)) {
+            return result;
+        }
+        List<Integer> uidList = recordList.stream().map(UserBrokerageRecord::getUid).filter(ObjectUtil::isNotNull).distinct().collect(Collectors.toList());
+        HashMap<Integer, User> userMap = CollUtil.isEmpty(uidList) ? new HashMap<>() : userService.getMapListInUid(uidList);
+        for (UserBrokerageRecord record : recordList) {
+            // 仅展示增加类佣金
+            if (ObjectUtil.isNotNull(record.getType()) && !BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD.equals(record.getType())) {
+                continue;
+            }
+            OrderBrokerageInfoResponse item = new OrderBrokerageInfoResponse();
+            item.setId(record.getId());
+            item.setUid(record.getUid());
+            item.setBrokerageLevel(record.getBrokerageLevel());
+            item.setBrokerageLevelName(getBrokerageLevelName(record.getBrokerageLevel()));
+            item.setTitle(record.getTitle());
+            item.setPrice(record.getPrice());
+            item.setStatus(record.getStatus());
+            item.setStatusName(getBrokerageStatusName(record.getStatus()));
+            item.setMark(record.getMark());
+            item.setCreateTime(record.getCreateTime());
+            User receiveUser = userMap.get(record.getUid());
+            if (ObjectUtil.isNotNull(receiveUser)) {
+                item.setUserName(receiveUser.getNickname());
+                item.setAccount(receiveUser.getAccount());
+            }
+            result.add(item);
+        }
+        return result;
+    }
+
+    private String getBrokerageLevelName(Integer level) {
+        if (ObjectUtil.isNull(level)) {
+            return "分销奖";
+        }
+        if (BrokerageRecordConstants.BROKERAGE_LEVEL_SELF.equals(level)) {
+            return "自购返佣";
+        }
+        if (Integer.valueOf(1).equals(level)) {
+            return "一级分销奖";
+        }
+        if (Integer.valueOf(2).equals(level)) {
+            return "二级分销奖";
+        }
+        if (BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF.equals(level)) {
+            return "团队奖";
+        }
+        if (BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER.equals(level)) {
+            return "平级奖";
+        }
+        return "分销奖";
+    }
+
+    private String getBrokerageStatusName(Integer status) {
+        if (ObjectUtil.isNull(status)) {
+            return "-";
+        }
+        if (BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE.equals(status)) {
+            return "待入账";
+        }
+        if (BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_FROZEN.equals(status)) {
+            return "冻结中";
+        }
+        if (BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE.equals(status)) {
+            return "已到账";
+        }
+        if (BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_INVALIDATION.equals(status)) {
+            return "已失效";
+        }
+        if (BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_WITHDRAW.equals(status)) {
+            return "提现申请";
+        }
+        return String.valueOf(status);
     }
 
     /**

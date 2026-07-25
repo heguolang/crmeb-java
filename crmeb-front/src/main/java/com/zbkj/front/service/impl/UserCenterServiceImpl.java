@@ -851,7 +851,11 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
             user.setPhone(request.getPhone());
             user.setAccount(request.getPhone());
             user.setSpreadUid(0);
-            user.setPwd(CommonUtil.createPwd(request.getPhone()));
+            if (StrUtil.isNotBlank(request.getPassword())) {
+                user.setPwd(CrmebUtil.encryptPassword(request.getPassword(), request.getPhone()));
+            } else {
+                user.setPwd(CommonUtil.createPwd(request.getPhone()));
+            }
             userService.applyRegisterDefaults(user);
         } else {// 已有账户，关联到之前得账户即可
             // 查询是否用对应得token
@@ -1183,6 +1187,20 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
     private void checkBindingPhone(WxBindingPhoneRequest request) {
         if (!request.getType().equals("public") && !request.getType().equals("routine") && !request.getType().equals("iosWx") && !request.getType().equals("androidWx")) {
             throw new CrmebException("未知的用户类型");
+        }
+        // 设置密码注册：校验手机号+密码，跳过短信验证码
+        if (StrUtil.isNotBlank(request.getPassword())) {
+            if (StrUtil.isBlank(request.getPhone())) {
+                throw new CrmebException("手机号不能为空");
+            }
+            boolean matchPhone = ReUtil.isMatch(RegularConstants.PHONE_TWO, request.getPhone());
+            if (!matchPhone) {
+                throw new CrmebException("手机号格式错误，请输入正确得手机号");
+            }
+            if (!ReUtil.isMatch("^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$", request.getPassword())) {
+                throw new CrmebException("密码须为6-16位字母数字组合");
+            }
+            return;
         }
         if (request.getType().equals("public") || request.getType().equals("iosWx") || request.getType().equals("androidWx")) {
             if (StrUtil.isBlank(request.getCaptcha())) {

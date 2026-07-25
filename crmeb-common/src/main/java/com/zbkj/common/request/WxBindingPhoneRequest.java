@@ -35,9 +35,11 @@ public class WxBindingPhoneRequest implements Serializable {
     @Pattern(regexp = RegularConstants.PHONE_TWO, message = "请输入正确的手机号")
     private String phone;
 
-    @ApiModelProperty(value = "验证码", required = true)
-    @Pattern(regexp = RegularConstants.VALIDATE_CODE_NUM_SIX, message = "请输入6位验证码")
+    @ApiModelProperty(value = "验证码（短信校验时必填；设置密码注册时可空）")
     private String captcha;
+
+    @ApiModelProperty(value = "登录密码（微信新用户绑定手机号时设置，6-16位字母数字组合）")
+    private String password;
 
     @ApiModelProperty(value = "类型:public-公众号，routine-小程序,iosWx-苹果微信，androidWx-安卓微信, ios-ios登录")
     @NotBlank(message = "类型不能为空")

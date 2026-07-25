@@ -51,7 +51,7 @@ public class UserWarrantExchangeServiceImpl extends ServiceImpl<UserWarrantExcha
     private UserService userService;
 
     @Override
-    public Boolean createApply(Integer uid, String payType, BigDecimal payAmount, BigDecimal warrantAmount, String address) {
+    public Integer createApply(Integer uid, String payType, BigDecimal payAmount, BigDecimal warrantAmount, String address) {
         Date now = CrmebDateUtil.nowDateTime();
         UserWarrantExchange apply = new UserWarrantExchange();
         apply.setUid(uid);
@@ -63,7 +63,8 @@ public class UserWarrantExchangeServiceImpl extends ServiceImpl<UserWarrantExcha
         apply.setMark("");
         apply.setCreateTime(now);
         apply.setUpdateTime(now);
-        return save(apply);
+        save(apply);
+        return apply.getId();
     }
 
     @Override

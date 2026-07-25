@@ -1,8 +1,8 @@
 package com.zbkj.service.service;
 
 import com.zbkj.common.model.user.UserVoucherRecord;
-import com.zbkj.common.model.user.UserWarrantRecord;
 import com.zbkj.common.request.*;
+import com.zbkj.common.response.UserWarrantRecordFrontResponse;
 import com.zbkj.common.response.VoucherWarrantConfigResponse;
 import com.zbkj.common.response.VoucherWarrantUserResponse;
 
@@ -23,7 +23,7 @@ public interface VoucherWarrantService {
 
     List<UserVoucherRecord> getVoucherRecordList(PageParamRequest pageParamRequest);
 
-    List<UserWarrantRecord> getWarrantRecordList(PageParamRequest pageParamRequest);
+    List<UserWarrantRecordFrontResponse> getWarrantRecordList(PageParamRequest pageParamRequest);
 
     /**
      * 每日积分强制释放到消费券

@@ -34,7 +34,6 @@ public class UserBindingPhoneUpdateRequest implements Serializable {
     @Pattern(regexp = RegularConstants.PHONE_TWO, message = "手机号码格式错误")
     private String phone;
 
-    @ApiModelProperty(value = "验证码", required = true)
-    @Pattern(regexp = RegularConstants.VALIDATE_CODE_NUM_SIX, message = "验证码格式错误，验证码必须为6位数字")
-    private String captcha;
+    @ApiModelProperty(value = "登录密码（换绑校验时必填）")
+    private String password;
 }

@@ -183,8 +183,8 @@ public class SystemTeamLevelServiceImpl extends ServiceImpl<SystemTeamLevelDao, 
             lqw.orderByDesc(SystemTeamLevel::getGrade);
             lqw.last(" limit 1");
             SystemTeamLevel prev = dao.selectOne(lqw);
-            if (ObjectUtil.isNotNull(prev) && !isThresholdHigher(request, prev)) {
-                throw new CrmebException("当前团队等级的升级门槛不能比上一级别的低");
+            if (ObjectUtil.isNotNull(prev) && !isThresholdValidAgainstLower(request, prev)) {
+                throw new CrmebException("当前团队等级自购门槛不能低于上一级，团队门槛须高于上一级");
             }
         }
 
@@ -197,18 +197,24 @@ public class SystemTeamLevelServiceImpl extends ServiceImpl<SystemTeamLevelDao, 
         lqw.orderByAsc(SystemTeamLevel::getGrade);
         lqw.last(" limit 1");
         SystemTeamLevel next = dao.selectOne(lqw);
-        if (ObjectUtil.isNotNull(next) && !isThresholdHigher(next, request)) {
-            throw new CrmebException("当前团队等级的升级门槛不能比下一级别的高");
+        if (ObjectUtil.isNotNull(next) && !isThresholdValidAgainstLower(next, request)) {
+            throw new CrmebException("当前团队等级自购门槛不能高于下一级，团队门槛须低于下一级");
         }
     }
 
-    private boolean isThresholdHigher(SystemTeamLevelRequest request, SystemTeamLevel other) {
-        return request.getSelfOrderAmount().compareTo(other.getSelfOrderAmount()) > 0
-                && request.getTeamOrderAmount().compareTo(other.getTeamOrderAmount()) > 0;
+    /**
+     * 序号更大的等级：自购门槛须 ≥ 较低等级，团队门槛须 > 较低等级
+     */
+    private boolean isThresholdValidAgainstLower(SystemTeamLevelRequest higher, SystemTeamLevel lower) {
+        return higher.getSelfOrderAmount().compareTo(lower.getSelfOrderAmount()) >= 0
+                && higher.getTeamOrderAmount().compareTo(lower.getTeamOrderAmount()) > 0;
     }
 
-    private boolean isThresholdHigher(SystemTeamLevel higher, SystemTeamLevelRequest lower) {
-        return higher.getSelfOrderAmount().compareTo(lower.getSelfOrderAmount()) > 0
+    /**
+     * 序号更大的等级：自购门槛须 ≥ 较低等级，团队门槛须 > 较低等级
+     */
+    private boolean isThresholdValidAgainstLower(SystemTeamLevel higher, SystemTeamLevelRequest lower) {
+        return higher.getSelfOrderAmount().compareTo(lower.getSelfOrderAmount()) >= 0
                 && higher.getTeamOrderAmount().compareTo(lower.getTeamOrderAmount()) > 0;
     }
 

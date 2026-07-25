@@ -10,17 +10,20 @@ import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.constants.VoucherRecordConstants;
 import com.zbkj.common.constants.WarrantRecordConstants;
 import com.zbkj.common.exception.CrmebException;
+import com.zbkj.common.model.finance.UserWarrantExchange;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserBill;
 import com.zbkj.common.model.user.UserIntegralRecord;
 import com.zbkj.common.model.user.UserVoucherRecord;
 import com.zbkj.common.model.user.UserWarrantRecord;
 import com.zbkj.common.request.*;
+import com.zbkj.common.response.UserWarrantRecordFrontResponse;
 import com.zbkj.common.response.VoucherWarrantConfigResponse;
 import com.zbkj.common.response.VoucherWarrantUserResponse;
 import com.zbkj.common.utils.CrmebDateUtil;
 import com.zbkj.service.service.*;
 import com.github.pagehelper.PageHelper;
+import org.springframework.beans.BeanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +32,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 消费券与权证兑换服务实现
@@ -244,7 +251,6 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
 
             UserWarrantRecord warrantRecord = new UserWarrantRecord();
             warrantRecord.setUid(fresh.getUid());
-            warrantRecord.setLinkId("0");
             warrantRecord.setLinkType(WarrantRecordConstants.LINK_TYPE_EXCHANGE);
             warrantRecord.setType(WarrantRecordConstants.TYPE_ADD);
             warrantRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_INTEGRAL);
@@ -254,9 +260,10 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             warrantRecord.setStatus(WarrantRecordConstants.STATUS_COMPLETE);
             warrantRecord.setCreateTime(now);
             warrantRecord.setUpdateTime(now);
-            userWarrantRecordService.save(warrantRecord);
-            userWarrantExchangeService.createApply(fresh.getUid(), "integral",
+            Integer applyId = userWarrantExchangeService.createApply(fresh.getUid(), "integral",
                     BigDecimal.valueOf(useIntegral), warrantAmount, address);
+            warrantRecord.setLinkId(String.valueOf(applyId));
+            userWarrantRecordService.save(warrantRecord);
             return Boolean.TRUE;
         });
         if (!Boolean.TRUE.equals(execute)) {
@@ -315,7 +322,6 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
 
             UserWarrantRecord warrantRecord = new UserWarrantRecord();
             warrantRecord.setUid(fresh.getUid());
-            warrantRecord.setLinkId("0");
             warrantRecord.setLinkType(WarrantRecordConstants.LINK_TYPE_EXCHANGE);
             warrantRecord.setType(WarrantRecordConstants.TYPE_ADD);
             warrantRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_VOUCHER);
@@ -325,9 +331,10 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             warrantRecord.setStatus(WarrantRecordConstants.STATUS_COMPLETE);
             warrantRecord.setCreateTime(now);
             warrantRecord.setUpdateTime(now);
-            userWarrantRecordService.save(warrantRecord);
-            userWarrantExchangeService.createApply(fresh.getUid(), "voucher",
+            Integer applyId = userWarrantExchangeService.createApply(fresh.getUid(), "voucher",
                     realVoucher, warrantAmount, address);
+            warrantRecord.setLinkId(String.valueOf(applyId));
+            userWarrantRecordService.save(warrantRecord);
             return Boolean.TRUE;
         });
         if (!Boolean.TRUE.equals(execute)) {
@@ -343,9 +350,59 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
     }
 
     @Override
-    public List<UserWarrantRecord> getWarrantRecordList(PageParamRequest pageParamRequest) {
+    public List<UserWarrantRecordFrontResponse> getWarrantRecordList(PageParamRequest pageParamRequest) {
         User user = userService.getInfoException();
-        return userWarrantRecordService.findUserRecordList(user.getUid(), pageParamRequest);
+        List<UserWarrantRecord> recordList = userWarrantRecordService.findUserRecordList(user.getUid(), pageParamRequest);
+        return fillProcessStatus(user.getUid(), recordList);
+    }
+
+    /**
+     * 同步后台权证兑换审核状态到用户端流水
+     */
+    private List<UserWarrantRecordFrontResponse> fillProcessStatus(Integer uid, List<UserWarrantRecord> recordList) {
+        if (ObjectUtil.isNull(recordList) || recordList.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<UserWarrantExchange> exchangeList = userWarrantExchangeService.list(Wrappers.<UserWarrantExchange>lambdaQuery()
+                .eq(UserWarrantExchange::getUid, uid)
+                .orderByDesc(UserWarrantExchange::getCreateTime));
+        Map<Integer, UserWarrantExchange> exchangeById = exchangeList.stream()
+                .filter(item -> ObjectUtil.isNotNull(item.getId()))
+                .collect(Collectors.toMap(UserWarrantExchange::getId, item -> item, (a, b) -> a));
+
+        return recordList.stream().map(record -> {
+            UserWarrantRecordFrontResponse response = new UserWarrantRecordFrontResponse();
+            BeanUtils.copyProperties(record, response);
+            if (!WarrantRecordConstants.LINK_TYPE_EXCHANGE.equals(record.getLinkType())) {
+                // 后台直接操作等无需审核
+                response.setProcessStatus(null);
+                response.setProcessStatusText("");
+                return response;
+            }
+            UserWarrantExchange matched = null;
+            if (StrUtil.isNotBlank(record.getLinkId()) && !"0".equals(record.getLinkId()) && record.getLinkId().matches("\\d+")) {
+                matched = exchangeById.get(Integer.valueOf(record.getLinkId()));
+            }
+            // 兼容历史数据：按金额+时间就近匹配
+            if (ObjectUtil.isNull(matched) && ObjectUtil.isNotNull(record.getWarrant()) && ObjectUtil.isNotNull(record.getCreateTime())) {
+                matched = exchangeList.stream()
+                        .filter(item -> ObjectUtil.isNotNull(item.getWarrantAmount())
+                                && item.getWarrantAmount().compareTo(record.getWarrant()) == 0
+                                && ObjectUtil.isNotNull(item.getCreateTime())
+                                && Math.abs(item.getCreateTime().getTime() - record.getCreateTime().getTime()) <= 120000L)
+                        .findFirst()
+                        .orElse(null);
+            }
+            if (ObjectUtil.isNotNull(matched)) {
+                Integer processStatus = matched.getStatus();
+                response.setProcessStatus(processStatus);
+                response.setProcessStatusText(Objects.equals(processStatus, UserWarrantExchangeServiceImpl.STATUS_DONE) ? "已处理" : "待处理");
+            } else {
+                response.setProcessStatus(UserWarrantExchangeServiceImpl.STATUS_PENDING);
+                response.setProcessStatusText("待处理");
+            }
+            return response;
+        }).collect(Collectors.toList());
     }
 
     @Override

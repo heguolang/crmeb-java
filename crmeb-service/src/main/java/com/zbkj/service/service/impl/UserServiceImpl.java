@@ -42,6 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -548,21 +549,27 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
-     * 换绑手机号校验
+     * 换绑手机号校验（密码验证）
      */
     @Override
     public Boolean updatePhoneVerify(UserBindingPhoneUpdateRequest request) {
-        //检测验证码
-        checkValidateCode(request.getPhone(), request.getCaptcha());
-
-        //删除验证码
-        redisUtil.delete(getValidateCodeRedisKey(request.getPhone()));
+        if (StringUtils.isBlank(request.getPassword())) {
+            throw new CrmebException("请输入登录密码");
+        }
 
         User user = getInfoException();
 
         if (!user.getPhone().equals(request.getPhone())) {
             throw new CrmebException("手机号不是当前用户手机号");
         }
+
+        String encryptPassword = CrmebUtil.encryptPassword(request.getPassword(), user.getPhone());
+        if (!encryptPassword.equals(user.getPwd())) {
+            throw new CrmebException("密码错误");
+        }
+
+        // 校验通过后写入换绑凭证，换绑手机号时校验
+        redisUtil.set(getPhoneRebindRedisKey(user.getUid()), "1", 10L, TimeUnit.MINUTES);
 
         return Boolean.TRUE;
     }
@@ -572,11 +579,14 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      */
     @Override
     public Boolean updatePhone(UserBindingPhoneUpdateRequest request) {
-        //检测验证码
-        checkValidateCode(request.getPhone(), request.getCaptcha());
+        User bindUser = getInfoException();
 
-        //删除验证码
-        redisUtil.delete(getValidateCodeRedisKey(request.getPhone()));
+        // 校验是否已通过密码验证
+        String rebindKey = getPhoneRebindRedisKey(bindUser.getUid());
+        if (!Boolean.TRUE.equals(redisUtil.exists(rebindKey))) {
+            throw new CrmebException("请先验证登录密码");
+        }
+        redisUtil.delete(rebindKey);
 
         //检测当前手机号是否已经是账号
         User user = getByPhone(request.getPhone());
@@ -584,12 +594,27 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             throw new CrmebException("此手机号码已被注册");
         }
 
-        //查询手机号信息
-        User bindUser = getInfoException();
+        // 手机号变更后需按新手机号重新加密密码，保证仍可密码登录
+        if (StringUtils.isNotBlank(bindUser.getPwd())) {
+            try {
+                String plainPwd = CrmebUtil.decryptPassowrd(bindUser.getPwd(), bindUser.getPhone());
+                bindUser.setPwd(CrmebUtil.encryptPassword(plainPwd, request.getPhone()));
+            } catch (Exception e) {
+                // 解密失败时保留原密码密文
+            }
+        }
+
         bindUser.setAccount(request.getPhone());
         bindUser.setPhone(request.getPhone());
         bindUser.setUpdateTime(DateUtil.date());
         return updateById(bindUser);
+    }
+
+    /**
+     * 换绑手机号凭证 Redis Key
+     */
+    private String getPhoneRebindRedisKey(Integer uid) {
+        return "user:phone:rebind:" + uid;
     }
 
     /**
@@ -1654,6 +1679,44 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         newUser.setUid(id);
         newUser.setPhone(phone);
         newUser.setAccount(phone);
+        // 手机号变更后按新手机号重新加密密码
+        if (StringUtils.isNotBlank(user.getPwd()) && StringUtils.isNotBlank(user.getPhone())) {
+            try {
+                String plainPwd = CrmebUtil.decryptPassowrd(user.getPwd(), user.getPhone());
+                newUser.setPwd(CrmebUtil.encryptPassword(plainPwd, phone));
+            } catch (Exception e) {
+                // 解密失败时不更新密码字段
+            }
+        }
+        newUser.setUpdateTime(DateUtil.date());
+        return userDao.updateById(newUser) > 0;
+    }
+
+    /**
+     * 后台修改用户密码（无需验证码）
+     * @param id 用户uid
+     * @param password 新密码
+     * @return Boolean
+     */
+    @Override
+    public Boolean updateUserPassword(Integer id, String password) {
+        if (StringUtils.isBlank(password)) {
+            throw new CrmebException("请输入密码");
+        }
+        if (password.length() < 6 || password.length() > 18) {
+            throw new CrmebException("密码长度为6-18位");
+        }
+        User user = getById(id);
+        if (ObjectUtil.isNull(user)) {
+            throw new CrmebException("对应用户不存在");
+        }
+        if (StringUtils.isBlank(user.getPhone()) && StringUtils.isBlank(user.getAccount())) {
+            throw new CrmebException("用户账号异常，无法修改密码");
+        }
+        String encryptKey = StringUtils.isNotBlank(user.getPhone()) ? user.getPhone() : user.getAccount();
+        User newUser = new User();
+        newUser.setUid(id);
+        newUser.setPwd(CrmebUtil.encryptPassword(password, encryptKey));
         newUser.setUpdateTime(DateUtil.date());
         return userDao.updateById(newUser) > 0;
     }

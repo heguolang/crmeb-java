@@ -1152,6 +1152,32 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
     }
 
     /**
+     * 我的推荐人（上级推广人）
+     */
+    @Override
+    public UserReferrerResponse getMyReferrer() {
+        User user = userService.getInfoException();
+        if (ObjectUtil.isNull(user.getSpreadUid()) || user.getSpreadUid() <= 0) {
+            return null;
+        }
+        User referrer = userService.getById(user.getSpreadUid());
+        if (ObjectUtil.isNull(referrer)) {
+            return null;
+        }
+        UserReferrerResponse response = new UserReferrerResponse();
+        response.setUid(referrer.getUid());
+        response.setNickname(referrer.getNickname());
+        response.setAvatar(referrer.getAvatar());
+        response.setRealName(StrUtil.blankToDefault(referrer.getRealName(), ""));
+        if (ObjectUtil.isNotNull(referrer.getCreateTime())) {
+            response.setCreateTime(CrmebDateUtil.dateToStr(referrer.getCreateTime(), Constants.DATE_FORMAT));
+        } else {
+            response.setCreateTime("");
+        }
+        return response;
+    }
+
+    /**
      * 绑定手机号数据校验
      */
     private void checkBindingPhone(WxBindingPhoneRequest request) {

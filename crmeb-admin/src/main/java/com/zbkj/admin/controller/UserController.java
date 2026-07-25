@@ -95,6 +95,21 @@ public class UserController {
     }
 
     /**
+     * 修改用户密码（无需验证码）
+     * @param id 用户uid
+     * @param password 新密码
+     */
+    @PreAuthorize("hasAuthority('admin:user:update:phone')")
+    @ApiOperation(value = "修改用户密码")
+    @RequestMapping(value = "/update/password", method = RequestMethod.GET)
+    public CommonResult<String> updatePassword(@RequestParam(name = "id") Integer id, @RequestParam(name = "password") String password) {
+        if (userService.updateUserPassword(id, password)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    /**
      * 用户详情
      * @param id Integer
      */

@@ -16,8 +16,9 @@ public interface UserWarrantExchangeService extends IService<UserWarrantExchange
 
     /**
      * 用户兑换成功后创建待处理申请
+     * @return 申请记录ID
      */
-    Boolean createApply(Integer uid, String payType, BigDecimal payAmount, BigDecimal warrantAmount, String address);
+    Integer createApply(Integer uid, String payType, BigDecimal payAmount, BigDecimal warrantAmount, String address);
 
     /**
      * 后台分页列表

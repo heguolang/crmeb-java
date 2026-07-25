@@ -230,4 +230,10 @@ public interface UserCenterService extends IService<User> {
      */
     UserSpreadPeopleResponse getSpreadPeopleCount();
 
+    /**
+     * 我的推荐人（上级推广人）
+     * @return UserReferrerResponse
+     */
+    UserReferrerResponse getMyReferrer();
+
 }

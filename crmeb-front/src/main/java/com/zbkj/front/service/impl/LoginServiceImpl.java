@@ -144,10 +144,13 @@ public class LoginServiceImpl implements LoginService {
 
     /**
      * 手机号注册（验证码+密码）
+     * 短信未接入时跳过验证码校验；接入后前端传入验证码即可自动校验
      */
     @Override
     public LoginResponse register(RegisterRequest registerRequest) {
-        checkValidateCode(registerRequest.getPhone(), registerRequest.getCaptcha());
+        if (StrUtil.isNotBlank(registerRequest.getCaptcha())) {
+            checkValidateCode(registerRequest.getPhone(), registerRequest.getCaptcha());
+        }
         User existUser = userService.getByPhone(registerRequest.getPhone());
         if (ObjectUtil.isNotNull(existUser)) {
             throw new CrmebException("此手机号已注册");

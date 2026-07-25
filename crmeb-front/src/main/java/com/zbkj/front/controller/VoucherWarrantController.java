@@ -1,13 +1,13 @@
 package com.zbkj.front.controller;
 
 import com.zbkj.common.model.user.UserVoucherRecord;
-import com.zbkj.common.model.user.UserWarrantRecord;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.ExchangeWarrantRequest;
 import com.zbkj.common.request.IntegralToVoucherRequest;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.VoucherToBalanceRequest;
 import com.zbkj.common.request.WarrantAddressRequest;
+import com.zbkj.common.response.UserWarrantRecordFrontResponse;
 import com.zbkj.common.response.VoucherWarrantUserResponse;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.VoucherWarrantService;
@@ -62,7 +62,7 @@ public class VoucherWarrantController {
 
     @ApiOperation(value = "权证流水")
     @RequestMapping(value = "/warrant/record", method = RequestMethod.GET)
-    public CommonResult<CommonPage<UserWarrantRecord>> warrantRecord(@Validated PageParamRequest pageParamRequest) {
+    public CommonResult<CommonPage<UserWarrantRecordFrontResponse>> warrantRecord(@Validated PageParamRequest pageParamRequest) {
         return CommonResult.success(CommonPage.restPage(voucherWarrantService.getWarrantRecordList(pageParamRequest)));
     }
 

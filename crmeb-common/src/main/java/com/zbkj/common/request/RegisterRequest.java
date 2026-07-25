@@ -29,9 +29,10 @@ public class RegisterRequest implements Serializable {
     @JsonProperty(value = "account")
     private String phone;
 
-    @ApiModelProperty(value = "验证码", required = true)
-    @NotBlank(message = "验证码不能为空")
-    @Pattern(regexp = RegularConstants.VALIDATE_CODE_NUM_SIX, message = "验证码格式错误，验证码必须为6位数字")
+    /**
+     * 短信未接入时可不传；接入短信后前端传验证码，后端会校验
+     */
+    @ApiModelProperty(value = "验证码（短信接入后必填）")
     private String captcha;
 
     @ApiModelProperty(value = "密码", required = true)

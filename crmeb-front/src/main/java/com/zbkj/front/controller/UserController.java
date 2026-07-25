@@ -84,7 +84,7 @@ public class UserController {
     }
 
     /**
-     * 换绑手机号校验
+     * 换绑手机号校验（密码验证）
      */
     @ApiOperation(value = "换绑手机号校验")
     @RequestMapping(value = "update/binding/verify", method = RequestMethod.POST)
@@ -214,6 +214,15 @@ public class UserController {
     @RequestMapping(value = "/spread/people/count", method = RequestMethod.GET)
     public CommonResult<UserSpreadPeopleResponse>  getSpreadPeopleCount() {
         return CommonResult.success(userCenterService.getSpreadPeopleCount());
+    }
+
+    /**
+     * 我的推荐人
+     */
+    @ApiOperation(value = "我的推荐人")
+    @RequestMapping(value = "/spread/referrer", method = RequestMethod.GET)
+    public CommonResult<UserReferrerResponse> getMyReferrer() {
+        return CommonResult.success(userCenterService.getMyReferrer());
     }
 
     /**

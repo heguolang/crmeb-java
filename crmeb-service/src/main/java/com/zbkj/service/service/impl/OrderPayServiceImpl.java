@@ -240,35 +240,32 @@ public class OrderPayServiceImpl implements OrderPayService {
             user.setPayCount(ObjectUtil.defaultIfNull(user.getPayCount(), 0) + 1);
         }
 
-        // 积分处理：1.下单赠送积分，2.商品赠送积分，3.会员等级赠送积分
-        int integral;
-        // 下单赠送积分
-        //赠送积分比例
-        String integralStr = systemConfigService.getValueByKey(Constants.CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE);
-        if (StrUtil.isNotBlank(integralStr) && storeOrder.getPayPrice().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal integralBig = new BigDecimal(integralStr);
-            integral = integralBig.multiply(storeOrder.getPayPrice()).setScale(0, BigDecimal.ROUND_DOWN).intValue();
-            if (integral > 0) {
-                // 生成积分记录
-                UserIntegralRecord integralRecord = integralRecordInit(storeOrder, user.getIntegral(), integral, "order");
-                integralList.add(integralRecord);
-            }
-        }
-
-        // 商品赠送积分
-        // 查询订单详情
-        // 获取商品额外赠送积分
+        // 积分处理：商品配置优先；商品积分为0时再用默认下单赠送比例；另加会员等级赠送
+        // 商品赠送积分（普通商品）
         List<StoreOrderInfo> orderInfoList = storeOrderInfoService.getListByOrderNo(storeOrder.getOrderId());
-        if (orderInfoList.get(0).getProductType().equals(0)) {
-            int sumIntegral = 0;
+        int sumProductIntegral = 0;
+        if (CollUtil.isNotEmpty(orderInfoList) && ObjectUtil.defaultIfNull(orderInfoList.get(0).getProductType(), 0).equals(0)) {
             for (StoreOrderInfo orderInfo : orderInfoList) {
                 StoreProduct product = storeProductService.getById(orderInfo.getProductId());
-                sumIntegral += product.getGiveIntegral() * orderInfo.getPayNum();
+                if (ObjectUtil.isNotNull(product) && ObjectUtil.isNotNull(product.getGiveIntegral()) && product.getGiveIntegral() > 0) {
+                    sumProductIntegral += product.getGiveIntegral() * orderInfo.getPayNum();
+                }
             }
-            if (sumIntegral > 0) {
-                // 生成积分记录
-                UserIntegralRecord integralRecord = integralRecordInit(storeOrder, user.getIntegral(), sumIntegral, "product");
-                integralList.add(integralRecord);
+        }
+        if (sumProductIntegral > 0) {
+            // 商品配置有积分：只用商品积分，不再叠加默认比例
+            UserIntegralRecord integralRecord = integralRecordInit(storeOrder, user.getIntegral(), sumProductIntegral, "product");
+            integralList.add(integralRecord);
+        } else {
+            // 商品积分为0：走默认「下单赠送积分比例」
+            String integralStr = systemConfigService.getValueByKey(Constants.CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE);
+            if (StrUtil.isNotBlank(integralStr) && storeOrder.getPayPrice().compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal integralBig = new BigDecimal(integralStr);
+                int integral = integralBig.multiply(storeOrder.getPayPrice()).setScale(0, BigDecimal.ROUND_DOWN).intValue();
+                if (integral > 0) {
+                    UserIntegralRecord integralRecord = integralRecordInit(storeOrder, user.getIntegral(), integral, "order");
+                    integralList.add(integralRecord);
+                }
             }
         }
 

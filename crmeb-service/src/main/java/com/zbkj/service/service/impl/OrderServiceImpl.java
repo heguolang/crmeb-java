@@ -1009,13 +1009,14 @@ public class OrderServiceImpl implements OrderService {
         // 生成订单号
         String orderNo = CrmebUtil.getOrderNo("order");
 
-        // 购买赠送的积分
+        // 购买赠送的积分：商品配置优先；商品积分为0时再用默认下单赠送比例
         int gainIntegral = 0;
+        int productGainIntegral = 0;
         List<StoreOrderInfo> storeOrderInfos = new ArrayList<>();
         for (OrderInfoDetailVo detailVo : orderInfoVo.getOrderDetailList()) {
-            // 赠送积分
+            // 商品赠送积分
             if (ObjectUtil.isNotNull(detailVo.getGiveIntegral()) && detailVo.getGiveIntegral() > 0) {
-                gainIntegral += detailVo.getGiveIntegral() * detailVo.getPayNum();
+                productGainIntegral += detailVo.getGiveIntegral() * detailVo.getPayNum();
             }
             // 订单详情
             StoreOrderInfo soInfo = new StoreOrderInfo();
@@ -1048,16 +1049,17 @@ public class OrderServiceImpl implements OrderService {
             storeOrderInfos.add(soInfo);
         }
 
-        // 下单赠送积分
-        if (computedOrderPriceResponse.getPayFee().compareTo(BigDecimal.ZERO) > 0) {
-            // 赠送积分比例
+        if (productGainIntegral > 0) {
+            // 商品配置有积分：只用商品积分
+            gainIntegral = productGainIntegral;
+        } else if (computedOrderPriceResponse.getPayFee().compareTo(BigDecimal.ZERO) > 0) {
+            // 商品积分为0：走默认「下单赠送积分比例」
             String integralStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE);
             if (StrUtil.isNotBlank(integralStr)) {
                 BigDecimal integralBig = new BigDecimal(integralStr);
                 int integral = integralBig.multiply(computedOrderPriceResponse.getPayFee()).setScale(0, BigDecimal.ROUND_DOWN).intValue();
                 if (integral > 0) {
-                    // 添加积分
-                    gainIntegral += integral;
+                    gainIntegral = integral;
                 }
             }
         }

@@ -131,6 +131,7 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
 
         String pwd = CrmebUtil.encryptPassword(systemAdmin.getPwd(), systemAdmin.getAccount());
         systemAdmin.setPwd(pwd);
+        checkCannotAssignSupremeRole(systemAdminAddRequest.getRoles());
         return save(systemAdmin);
     }
 
@@ -169,11 +170,9 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
             systemAdmin.setPwd(pwd);
         }
         systemAdmin.setUpdateTime(DateUtil.date());
+        checkCannotAssignSupremeRole(systemAdminRequest.getRoles());
         return updateById(systemAdmin);
     }
-
-    @Override
-    public Boolean deleteAdmin(Integer id) {
         SystemAdmin systemAdmin = getDetail(id);
         checkSupremeAdminOperate(systemAdmin);
         return removeById(id);
@@ -314,6 +313,21 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
             return;
         }
         if (Constants.SUPREME_ADMIN_ACCOUNT.equals(targetAdmin.getAccount()) && !isCurrentSupremeAdmin()) {
+            throw new CrmebException("不允许访问");
+        }
+    }
+
+    /**
+     * 非最高管理员不可给他人分配最高角色
+     */
+    private void checkCannotAssignSupremeRole(String roles) {
+        if (isCurrentSupremeAdmin() || StrUtil.isBlank(roles)) {
+            return;
+        }
+        List<SystemRole> roleList = systemRoleService.getListInIds(CrmebUtil.stringToArrayInt(roles));
+        boolean hasSupreme = roleList.stream()
+                .anyMatch(r -> Constants.SUPREME_ADMIN_ROLE_NAME.equals(r.getRoleName()));
+        if (hasSupreme) {
             throw new CrmebException("不允许访问");
         }
     }

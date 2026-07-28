@@ -78,6 +78,9 @@ public class SystemRoleServiceImpl extends ServiceImpl<SystemRoleDao, SystemRole
     public List<SystemRole> getAllList() {
         LambdaQueryWrapper<SystemRole> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(SystemRole::getStatus, true);
+        if (!isCurrentSupremeAdmin()) {
+            lambdaQueryWrapper.ne(SystemRole::getRoleName, Constants.SUPREME_ADMIN_ROLE_NAME);
+        }
         lambdaQueryWrapper.orderByAsc(SystemRole::getId);
         return dao.selectList(lambdaQueryWrapper);
     }
@@ -94,6 +97,9 @@ public class SystemRoleServiceImpl extends ServiceImpl<SystemRoleDao, SystemRole
         LambdaQueryWrapper<SystemRole> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.select(SystemRole::getId, SystemRole::getRoleName, SystemRole::getStatus,
                 SystemRole::getCreateTime, SystemRole::getUpdateTime);
+        if (!isCurrentSupremeAdmin()) {
+            lambdaQueryWrapper.ne(SystemRole::getRoleName, Constants.SUPREME_ADMIN_ROLE_NAME);
+        }
         if (ObjectUtil.isNotNull(request.getStatus())) {
             lambdaQueryWrapper.eq(SystemRole::getStatus, request.getStatus());
         }
@@ -133,6 +139,7 @@ public class SystemRoleServiceImpl extends ServiceImpl<SystemRoleDao, SystemRole
         if (ObjectUtil.isNull(role)) {
             throw new CrmebException("身份不存在");
         }
+        checkSupremeRoleOperate(role);
         if (role.getStatus().equals(status)) {
             return true;
         }
@@ -148,6 +155,9 @@ public class SystemRoleServiceImpl extends ServiceImpl<SystemRoleDao, SystemRole
      */
     @Override
     public Boolean add(SystemRoleRequest systemRoleRequest) {
+        if (Constants.SUPREME_ADMIN_ROLE_NAME.equals(systemRoleRequest.getRoleName()) && !isCurrentSupremeAdmin()) {
+            throw new CrmebException("不允许访问");
+        }
         if (existName(systemRoleRequest.getRoleName(), null)) {
             throw new CrmebException("角色名称重复");
         }
@@ -200,6 +210,10 @@ public class SystemRoleServiceImpl extends ServiceImpl<SystemRoleDao, SystemRole
         if (ObjectUtil.isNull(role)) {
             throw new CrmebException("角色不存在");
         }
+        checkSupremeRoleOperate(role);
+        if (Constants.SUPREME_ADMIN_ROLE_NAME.equals(systemRoleRequest.getRoleName()) && !isCurrentSupremeAdmin()) {
+            throw new CrmebException("不允许访问");
+        }
         if (!role.getRoleName().equals(systemRoleRequest.getRoleName())) {
             if (existName(systemRoleRequest.getRoleName(), systemRoleRequest.getId())) {
                 throw new CrmebException("角色名称重复");
@@ -235,6 +249,7 @@ public class SystemRoleServiceImpl extends ServiceImpl<SystemRoleDao, SystemRole
         if (ObjectUtil.isNull(systemRole)) {
             throw new CrmebException("角色已删除");
         }
+        checkSupremeRoleOperate(systemRole);
         return transactionTemplate.execute(e -> {
             dao.deleteById(id);
             systemRoleMenuService.deleteByRid(id);
@@ -253,6 +268,7 @@ public class SystemRoleServiceImpl extends ServiceImpl<SystemRoleDao, SystemRole
         if (ObjectUtil.isNull(systemRole)) {
             throw new CrmebException("角色不存在");
         }
+        checkSupremeRoleOperate(systemRole);
         // 查询角色对应的菜单(权限)
         List<SystemMenu> menuList = systemMenuService.getCacheList();
         List<Integer> menuIdList = systemRoleMenuService.getMenuListByRid(id);
@@ -306,6 +322,27 @@ public class SystemRoleServiceImpl extends ServiceImpl<SystemRoleDao, SystemRole
         LambdaQueryWrapper<SystemRole> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.in(SystemRole::getId, CrmebUtil.stringToArray(roles));
         return dao.selectList(lambdaQueryWrapper);
+    }
+
+    /**
+     * 当前登录是否为最高管理员
+     */
+    private boolean isCurrentSupremeAdmin() {
+        SystemAdmin current = SecurityUtil.getLoginUserVo().getUser();
+        return ObjectUtil.isNotNull(current)
+                && Constants.SUPREME_ADMIN_ACCOUNT.equals(current.getAccount());
+    }
+
+    /**
+     * 非最高管理员不可查看/操作最高角色
+     */
+    private void checkSupremeRoleOperate(SystemRole role) {
+        if (ObjectUtil.isNull(role)) {
+            return;
+        }
+        if (Constants.SUPREME_ADMIN_ROLE_NAME.equals(role.getRoleName()) && !isCurrentSupremeAdmin()) {
+            throw new CrmebException("不允许访问");
+        }
     }
 
 }

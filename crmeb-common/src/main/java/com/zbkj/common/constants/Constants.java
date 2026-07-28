@@ -598,4 +598,7 @@ public class Constants {
 
     /** 最高权限管理员账号（其他管理员不可见、不可操作） */
     public static final String SUPREME_ADMIN_ACCOUNT = "qxtec";
+
+    /** 最高权限角色名称（其他管理员不可见、不可操作） */
+    public static final String SUPREME_ADMIN_ROLE_NAME = "超级管理员";
 }

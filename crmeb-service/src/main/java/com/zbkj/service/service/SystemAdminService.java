@@ -44,6 +44,13 @@ public interface SystemAdminService extends IService<SystemAdmin> {
     Boolean updateAdmin(SystemAdminUpdateRequest systemAdminRequest);
 
     /**
+     * 删除管理员
+     * @param id 管理员id
+     * @return Boolean
+     */
+    Boolean deleteAdmin(Integer id);
+
+    /**
      * 修改后台管理员状态
      * @param id 管理员id
      * @param status 状态

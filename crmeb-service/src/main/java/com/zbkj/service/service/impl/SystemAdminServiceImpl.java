@@ -7,6 +7,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zbkj.common.constants.Constants;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.system.SystemAdmin;
 import com.zbkj.common.model.system.SystemRole;
@@ -16,6 +17,7 @@ import com.zbkj.common.request.SystemAdminRequest;
 import com.zbkj.common.request.SystemAdminUpdateRequest;
 import com.zbkj.common.response.SystemAdminResponse;
 import com.zbkj.common.utils.CrmebUtil;
+import com.zbkj.common.utils.SecurityUtil;
 import com.zbkj.common.utils.ValidateFormUtil;
 import com.github.pagehelper.PageHelper;
 import com.zbkj.service.dao.SystemAdminDao;
@@ -65,6 +67,10 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
 
         //带SystemAdminRequest类的多条件查询
         LambdaQueryWrapper<SystemAdmin> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        // 非最高账号登录时，隐藏最高管理员
+        if (!isCurrentSupremeAdmin()) {
+            lambdaQueryWrapper.ne(SystemAdmin::getAccount, Constants.SUPREME_ADMIN_ACCOUNT);
+        }
         if (StrUtil.isNotBlank(request.getRoles())) {
             lambdaQueryWrapper.eq(SystemAdmin::getRoles, request.getRoles());
         }
@@ -107,6 +113,9 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
      */
     @Override
     public Boolean saveAdmin(SystemAdminAddRequest systemAdminAddRequest) {
+        if (Constants.SUPREME_ADMIN_ACCOUNT.equals(systemAdminAddRequest.getAccount()) && !isCurrentSupremeAdmin()) {
+            throw new CrmebException("不允许访问");
+        }
         // 管理员名称唯一校验
         Integer result = checkAccount(systemAdminAddRequest.getAccount());
         if (result > 0) {
@@ -142,7 +151,11 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
      */
     @Override
     public Boolean updateAdmin(SystemAdminUpdateRequest systemAdminRequest) {
-        getDetail(systemAdminRequest.getId());
+        SystemAdmin existAdmin = getDetail(systemAdminRequest.getId());
+        checkSupremeAdminOperate(existAdmin);
+        if (Constants.SUPREME_ADMIN_ACCOUNT.equals(systemAdminRequest.getAccount()) && !isCurrentSupremeAdmin()) {
+            throw new CrmebException("不允许访问");
+        }
         verifyAccount(systemAdminRequest.getId(), systemAdminRequest.getAccount());
         // 如果有手机号，校验手机号
         if (StrUtil.isNotBlank(systemAdminRequest.getPhone())) {
@@ -157,6 +170,13 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
         }
         systemAdmin.setUpdateTime(DateUtil.date());
         return updateById(systemAdmin);
+    }
+
+    @Override
+    public Boolean deleteAdmin(Integer id) {
+        SystemAdmin systemAdmin = getDetail(id);
+        checkSupremeAdminOperate(systemAdmin);
+        return removeById(id);
     }
 
     /**
@@ -183,6 +203,7 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
     @Override
     public Boolean updateStatus(Integer id, Boolean status) {
         SystemAdmin systemAdmin = getDetail(id);
+        checkSupremeAdminOperate(systemAdmin);
         if (systemAdmin.getStatus().equals(status)) {
             return true;
         }
@@ -222,6 +243,7 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
     @Override
     public Boolean updateIsSms(Integer id) {
         SystemAdmin systemAdmin = getDetail(id);
+        checkSupremeAdminOperate(systemAdmin);
         if (StrUtil.isBlank(systemAdmin.getPhone())) {
             throw new CrmebException("请先为管理员添加手机号!");
         }
@@ -258,6 +280,7 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
         if (ObjectUtil.isNull(systemAdmin) || systemAdmin.getIsDel()) {
             throw new CrmebException("管理员不存在");
         }
+        checkSupremeAdminOperate(systemAdmin);
         return systemAdmin;
     }
 
@@ -272,6 +295,27 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
         lqw.eq(SystemAdmin::getAccount, username);
         lqw.eq(SystemAdmin::getIsDel, false);
         return dao.selectOne(lqw);
+    }
+
+    /**
+     * 当前登录是否为最高管理员
+     */
+    private boolean isCurrentSupremeAdmin() {
+        SystemAdmin current = SecurityUtil.getLoginUserVo().getUser();
+        return ObjectUtil.isNotNull(current)
+                && Constants.SUPREME_ADMIN_ACCOUNT.equals(current.getAccount());
+    }
+
+    /**
+     * 非最高管理员不可查看/操作最高账号
+     */
+    private void checkSupremeAdminOperate(SystemAdmin targetAdmin) {
+        if (ObjectUtil.isNull(targetAdmin)) {
+            return;
+        }
+        if (Constants.SUPREME_ADMIN_ACCOUNT.equals(targetAdmin.getAccount()) && !isCurrentSupremeAdmin()) {
+            throw new CrmebException("不允许访问");
+        }
     }
 
 }

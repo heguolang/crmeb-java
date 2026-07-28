@@ -77,7 +77,7 @@ public class SystemAdminController {
     @ApiOperation(value = "删除")
     @RequestMapping(value = "/delete", method = RequestMethod.GET)
     public CommonResult<String> delete(@RequestParam(value = "id") Integer id) {
-        if (systemAdminService.removeById(id)) {
+        if (systemAdminService.deleteAdmin(id)) {
             return CommonResult.success();
         } else {
             return CommonResult.failed();

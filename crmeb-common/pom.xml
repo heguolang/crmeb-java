@@ -63,7 +63,7 @@
 
         <!--访问mysql-->
         <!--JDBC-->
-        <!-- MySql 5.5 Connector -->
+        <!-- MySQL 8.x Connector -->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>

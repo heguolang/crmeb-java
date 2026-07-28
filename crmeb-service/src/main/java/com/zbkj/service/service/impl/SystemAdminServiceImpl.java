@@ -173,6 +173,9 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
         checkCannotAssignSupremeRole(systemAdminRequest.getRoles());
         return updateById(systemAdmin);
     }
+
+    @Override
+    public Boolean deleteAdmin(Integer id) {
         SystemAdmin systemAdmin = getDetail(id);
         checkSupremeAdminOperate(systemAdmin);
         return removeById(id);

@@ -15,11 +15,11 @@ spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://47.120.18.0:3306/crmeb?characterEncoding=utf-8&useSSL=false&serverTimeZone=GMT+8
+    url: jdbc:mysql://8.163.105.182:3306/crmeb?characterEncoding=utf-8&useSSL=false&serverTimeZone=GMT+8
     username: crmeb
-    password: iH77Fd2bEeXP3Tye
+    password: 3wnGmWB2zhnzxBaG
   redis:
-    host: 47.120.18.0 #地址
+    host: 8.163.105.182 #地址
     port: 6379 #端口
     password: 123456
     timeout: 10000 # 连接超时时间（毫秒）

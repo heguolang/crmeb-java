@@ -37,6 +37,9 @@ public class VoucherWarrantConfigResponse implements Serializable {
     @ApiModelProperty(value = "兑1权证所需积分")
     private String warrantNeedIntegral;
 
-    @ApiModelProperty(value = "功能开关 0关闭 1开启")
+    @ApiModelProperty(value = "兑换开关 0关闭 1开启")
     private String voucherWarrantSwitch;
+
+    @ApiModelProperty(value = "释放开关 0关闭 1开启")
+    private String integralDailyReleaseSwitch;
 }

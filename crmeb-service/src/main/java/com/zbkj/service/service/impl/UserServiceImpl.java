@@ -643,11 +643,13 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
                 userCenterResponse.setVipName(systemUserLevel.getName());
             }
         }
-        // 充值开关
+        // 余额充值 / 互转 / 佣金转余额开关
         String rechargeSwitch = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_RECHARGE_SWITCH);
-        if (StrUtil.isNotBlank(rechargeSwitch)) {
-            userCenterResponse.setRechargeSwitch(Boolean.valueOf(rechargeSwitch));
-        }
+        userCenterResponse.setRechargeSwitch(parseConfigOpen(rechargeSwitch, true));
+        String balanceTransferSwitch = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_BALANCE_TRANSFER_SWITCH);
+        userCenterResponse.setBalanceTransferSwitch(parseConfigOpen(balanceTransferSwitch, true));
+        String brokerageToYueSwitch = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_BROKERAGE_TO_YUE_SWITCH);
+        userCenterResponse.setBrokerageToYueSwitch(parseConfigOpen(brokerageToYueSwitch, true));
 
         // 判断是否展示我的推广，1.分销模式是否开启
         String funcStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_BROKERAGE_FUNC_STATUS);
@@ -1974,5 +1976,22 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         luw.set(User::getLevel, levelId);
         luw.eq(User::getUid, uid);
         return update(luw);
+    }
+
+    /**
+     * 解析配置开关：兼容 true/false 与 1/0
+     */
+    private Boolean parseConfigOpen(String value, boolean defaultOpen) {
+        if (StrUtil.isBlank(value)) {
+            return defaultOpen;
+        }
+        String v = value.trim();
+        if ("1".equals(v) || "true".equalsIgnoreCase(v)) {
+            return true;
+        }
+        if ("0".equals(v) || "false".equalsIgnoreCase(v)) {
+            return false;
+        }
+        return defaultOpen;
     }
 }

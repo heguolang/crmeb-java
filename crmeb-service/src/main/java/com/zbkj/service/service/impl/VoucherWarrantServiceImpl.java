@@ -407,8 +407,8 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
 
     @Override
     public void dailyReleaseIntegralToVoucher() {
-        if (!isSwitchOn()) {
-            logger.info("消费券权证功能已关闭，跳过每日释放");
+        if (!isReleaseSwitchOn()) {
+            logger.info("积分释放开关已关闭，跳过每日释放");
             return;
         }
         BigDecimal releasePercent = getDecimalConfig(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO, "1");
@@ -483,6 +483,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         response.setWarrantNeedVoucher(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_VOUCHER), "5"));
         response.setWarrantNeedIntegral(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_INTEGRAL), "100"));
         response.setVoucherWarrantSwitch(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_VOUCHER_WARRANT_SWITCH), "1"));
+        response.setIntegralDailyReleaseSwitch(defaultStr(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_SWITCH), "1"));
         return response;
     }
 
@@ -515,6 +516,9 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         }
         if (StrUtil.isNotBlank(request.getVoucherWarrantSwitch())) {
             systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_VOUCHER_WARRANT_SWITCH, request.getVoucherWarrantSwitch().trim());
+        }
+        if (StrUtil.isNotBlank(request.getIntegralDailyReleaseSwitch())) {
+            systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_SWITCH, request.getIntegralDailyReleaseSwitch().trim());
         }
         return true;
     }
@@ -669,12 +673,17 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
 
     private void checkSwitchOn() {
         if (!isSwitchOn()) {
-            throw new CrmebException("消费券权证功能未开启");
+            throw new CrmebException("兑换功能未开启");
         }
     }
 
     private boolean isSwitchOn() {
         String value = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_VOUCHER_WARRANT_SWITCH);
+        return !"0".equals(value);
+    }
+
+    private boolean isReleaseSwitchOn() {
+        String value = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_SWITCH);
         return !"0".equals(value);
     }
 

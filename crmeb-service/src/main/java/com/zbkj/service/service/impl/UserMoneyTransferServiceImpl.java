@@ -23,6 +23,7 @@ import com.zbkj.common.utils.CrmebDateUtil;
 import com.zbkj.common.utils.CrmebUtil;
 import com.zbkj.common.vo.DateLimitUtilVo;
 import com.zbkj.service.dao.UserMoneyTransferDao;
+import com.zbkj.service.service.BalanceFeatureConfigService;
 import com.zbkj.service.service.UserBillService;
 import com.zbkj.service.service.UserMoneyTransferService;
 import com.zbkj.service.service.UserService;
@@ -61,8 +62,12 @@ public class UserMoneyTransferServiceImpl extends ServiceImpl<UserMoneyTransferD
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private BalanceFeatureConfigService balanceFeatureConfigService;
+
     @Override
     public UserMoneyTransferCheckResponse checkReceiver(Integer toUid) {
+        assertTransferOpen();
         if (ObjectUtil.isNull(toUid) || toUid <= 0) {
             throw new CrmebException("请输入正确的收款用户ID");
         }
@@ -85,6 +90,7 @@ public class UserMoneyTransferServiceImpl extends ServiceImpl<UserMoneyTransferD
 
     @Override
     public Boolean transfer(UserMoneyTransferRequest request) {
+        assertTransferOpen();
         if (ObjectUtil.isNull(request.getToUid()) || request.getToUid() <= 0) {
             throw new CrmebException("请输入正确的收款用户ID");
         }
@@ -244,6 +250,12 @@ public class UserMoneyTransferServiceImpl extends ServiceImpl<UserMoneyTransferD
 
     private BigDecimal nullToZero(BigDecimal value) {
         return ObjectUtil.isNull(value) ? BigDecimal.ZERO : value;
+    }
+
+    private void assertTransferOpen() {
+        if (!balanceFeatureConfigService.isBalanceTransferOpen()) {
+            throw new CrmebException("余额互转功能已关闭");
+        }
     }
 
     private String maskNickname(String nickname) {

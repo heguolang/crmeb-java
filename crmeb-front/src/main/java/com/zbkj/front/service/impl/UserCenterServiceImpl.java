@@ -74,6 +74,9 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
     private SystemConfigService systemConfigService;
 
     @Autowired
+    private BalanceFeatureConfigService balanceFeatureConfigService;
+
+    @Autowired
     private SystemUserLevelService systemUserLevelService;
 
     @Autowired
@@ -374,6 +377,9 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
     @Override
     @Transactional(rollbackFor = {RuntimeException.class, Error.class, CrmebException.class})
     public OrderPayResultResponse recharge(UserRechargeRequest request) {
+        if (!balanceFeatureConfigService.isBalanceRechargeOpen()) {
+            throw new CrmebException("余额充值功能已关闭");
+        }
         request.setPayType(Constants.PAY_TYPE_WE_CHAT);
 
         //验证金额是否为最低金额
@@ -697,6 +703,9 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
      */
     @Override
     public Boolean transferIn(BigDecimal price) {
+        if (!balanceFeatureConfigService.isBrokerageToYueOpen()) {
+            throw new CrmebException("佣金转余额功能已关闭");
+        }
         if (price.compareTo(BigDecimal.ZERO) <= 0) {
             throw new CrmebException("转入金额不能为0");
         }

@@ -92,8 +92,14 @@ public class UserCenterResponse implements Serializable {
     @ApiModelProperty(value = "会员名称")
     private String vipName;
 
-    @ApiModelProperty(value = "小程序充值开关")
+    @ApiModelProperty(value = "余额充值开关")
     private Boolean rechargeSwitch;
+
+    @ApiModelProperty(value = "余额互转开关")
+    private Boolean balanceTransferSwitch;
+
+    @ApiModelProperty(value = "佣金转余额开关")
+    private Boolean brokerageToYueSwitch;
 
     @ApiModelProperty(value = "用户收藏数量")
     private Integer collectCount;

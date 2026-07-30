@@ -70,6 +70,10 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_VIP_OPEN = "vip_open";
     /** 是否开启充值功能 */
     public static final String CONFIG_KEY_RECHARGE_SWITCH = "recharge_switch";
+    /** 余额互转开关：0关闭 1开启 */
+    public static final String CONFIG_BALANCE_TRANSFER_SWITCH = "balance_transfer_switch";
+    /** 佣金转余额开关：0关闭 1开启 */
+    public static final String CONFIG_BROKERAGE_TO_YUE_SWITCH = "brokerage_to_yue_switch";
     /** 是否开启门店自提 */
     public static final String CONFIG_KEY_STORE_SELF_MENTION = "store_self_mention";
 //    /** 腾讯地图key */
@@ -138,8 +142,10 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_WARRANT_NEED_VOUCHER = "warrant_need_voucher";
     /** 兑 1 权证所需积分 */
     public static final String CONFIG_KEY_WARRANT_NEED_INTEGRAL = "warrant_need_integral";
-    /** 消费券权证功能开关：0关闭 1开启 */
+    /** 消费券权证兑换开关：0关闭 1开启 */
     public static final String CONFIG_KEY_VOUCHER_WARRANT_SWITCH = "voucher_warrant_switch";
+    /** 积分每日释放开关：0关闭 1开启 */
+    public static final String CONFIG_KEY_INTEGRAL_DAILY_RELEASE_SWITCH = "integral_daily_release_switch";
 
     /** 微信支付开关 */
     public static final String CONFIG_PAY_WEIXIN_OPEN  = "pay_weixin_open";

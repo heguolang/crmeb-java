@@ -1,8 +1,5 @@
 package com.zbkj.common.response;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -11,7 +8,6 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Date;
 
 /**
  * 首页经营数据响应对象
@@ -39,9 +35,6 @@ public class HomeOperatingDataResponse implements Serializable {
     @ApiModelProperty(value = "退款中订单数量")
     private Integer refundingOrderNum;
 
-    @ApiModelProperty(value = "待核销订单数量")
-    private Integer notWriteOffOrderNum;
-
     @ApiModelProperty(value = "库存预警商品数量")
     private Integer vigilanceInventoryNum;
 
@@ -54,7 +47,22 @@ public class HomeOperatingDataResponse implements Serializable {
     @ApiModelProperty(value = "提现申请待审核数量")
     private Integer notAuditNum;
 
-    @ApiModelProperty(value = "用户充值总金额")
-    private BigDecimal totalRechargeAmount;
+    @ApiModelProperty(value = "总销售额")
+    private BigDecimal totalSalesAmount;
+
+    @ApiModelProperty(value = "当前佣金（所有用户账户合计）")
+    private BigDecimal totalBrokerageAmount;
+
+    @ApiModelProperty(value = "当前余额（所有用户账户合计）")
+    private BigDecimal totalBalanceAmount;
+
+    @ApiModelProperty(value = "当前积分（所有用户账户合计）")
+    private BigDecimal totalIntegral;
+
+    @ApiModelProperty(value = "当前消费券（所有用户账户合计）")
+    private BigDecimal totalConsumeVoucher;
+
+    @ApiModelProperty(value = "当前MLSS（所有用户账户合计）")
+    private BigDecimal totalWarrant;
 
 }

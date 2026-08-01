@@ -1,6 +1,7 @@
 package com.zbkj.service.service.impl;
 
 import com.zbkj.common.constants.Constants;
+import com.zbkj.common.model.user.User;
 import com.zbkj.common.response.HomeOperatingDataResponse;
 import com.zbkj.common.utils.CrmebDateUtil;
 import com.zbkj.common.response.HomeRateResponse;
@@ -9,7 +10,6 @@ import com.zbkj.service.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 /**
@@ -38,12 +38,6 @@ public class HomeServiceImpl implements HomeService {
 
     @Autowired
     private StoreProductService storeProductService;
-
-    @Autowired
-    private UserRechargeService userRechargeService;
-
-    @Autowired
-    private UserBrokerageRecordService brokerageRecordService;
 
     @Autowired
     private UserExtractService userExtractService;
@@ -311,8 +305,8 @@ public class HomeServiceImpl implements HomeService {
 
     /**
      * 经营数据：
-     * 1.待发货订单，2.退款中订单，3.待核销订单，4.库存预警
-     * 5.上架商品数，6.库存中商品数，7.提现待审核，8.账户充值
+     * 1.待发货订单，2.退款中订单，3.库存预警，4.上架商品数，5.库存中商品数，6.提现待审核
+     * 7.总销售额，8.当前佣金，9.当前余额，10.当前积分，11.当前消费券，12.当前MLSS
      * @return HomeOperatingDataResponse
      */
     @Override
@@ -320,14 +314,17 @@ public class HomeServiceImpl implements HomeService {
         HomeOperatingDataResponse response = new HomeOperatingDataResponse();
         response.setNotShippingOrderNum(storeOrderService.getNotShippingNum());
         response.setRefundingOrderNum(storeOrderService.getRefundingNum());
-        response.setNotWriteOffOrderNum(storeOrderService.getNotWriteOffNum());
         response.setVigilanceInventoryNum(storeProductService.getVigilanceInventoryNum());
         response.setOnSaleProductNum(storeProductService.getOnSaleNum());
         response.setNotSaleProductNum(storeProductService.getNotSaleNum());
         response.setNotAuditNum(userExtractService.getNotAuditNum());
-        BigDecimal totalRechargeAmount = userRechargeService.getTotalPrice();
-        BigDecimal BrokerageToYueAmount = brokerageRecordService.getTotalYuePrice();
-        response.setTotalRechargeAmount(totalRechargeAmount.add(BrokerageToYueAmount));
+        response.setTotalSalesAmount(storeOrderService.getTotalPrice());
+        User totalAsset = userService.getTotalAsset();
+        response.setTotalBrokerageAmount(totalAsset.getBrokeragePrice());
+        response.setTotalBalanceAmount(totalAsset.getNowMoney());
+        response.setTotalIntegral(totalAsset.getIntegral());
+        response.setTotalConsumeVoucher(totalAsset.getConsumeVoucher());
+        response.setTotalWarrant(totalAsset.getWarrant());
         return response;
     }
 

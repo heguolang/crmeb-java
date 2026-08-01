@@ -317,6 +317,12 @@ public interface UserService extends IService<User> {
     Integer getTotalNum();
 
     /**
+     * 获取所有用户账户资产汇总（余额、佣金、积分、消费券、MLSS）
+     * @return User 汇总字段：nowMoney、brokeragePrice、integral、consumeVoucher、warrant
+     */
+    User getTotalAsset();
+
+    /**
      * 根据日期获取注册用户数量
      * @param date 日期
      * @return Integer

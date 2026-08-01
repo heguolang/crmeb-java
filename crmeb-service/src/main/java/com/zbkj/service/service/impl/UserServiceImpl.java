@@ -1867,6 +1867,31 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
+     * 获取所有用户账户资产汇总（余额、佣金、积分、消费券、MLSS）
+     */
+    @Override
+    public User getTotalAsset() {
+        QueryWrapper<User> wrapper = Wrappers.query();
+        wrapper.select(
+                "IFNULL(sum(now_money), 0) as now_money",
+                "IFNULL(sum(brokerage_price), 0) as brokerage_price",
+                "IFNULL(sum(integral), 0) as integral",
+                "IFNULL(sum(consume_voucher), 0) as consume_voucher",
+                "IFNULL(sum(warrant), 0) as warrant"
+        );
+        User user = userDao.selectOne(wrapper);
+        if (ObjectUtil.isNull(user)) {
+            user = new User();
+            user.setNowMoney(BigDecimal.ZERO);
+            user.setBrokeragePrice(BigDecimal.ZERO);
+            user.setIntegral(BigDecimal.ZERO);
+            user.setConsumeVoucher(BigDecimal.ZERO);
+            user.setWarrant(BigDecimal.ZERO);
+        }
+        return user;
+    }
+
+    /**
      * 根据日期段获取注册用户数量
      * @param startDate 日期
      * @param endDate 日期

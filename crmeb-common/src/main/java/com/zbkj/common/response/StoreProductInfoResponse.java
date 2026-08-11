@@ -84,6 +84,12 @@ public class StoreProductInfoResponse implements Serializable {
     @ApiModelProperty(value = "是否单独分佣")
     private Boolean isSub;
 
+    @ApiModelProperty(value = "是否参与分销，默认是")
+    private Boolean isBrokerage;
+
+    @ApiModelProperty(value = "是否参与团队奖，默认是")
+    private Boolean isTeamBrokerage;
+
     @ApiModelProperty(value = "虚拟销量")
     private Integer ficti;
 

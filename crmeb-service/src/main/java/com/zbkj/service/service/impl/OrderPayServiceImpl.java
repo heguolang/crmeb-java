@@ -705,8 +705,22 @@ public class OrderPayServiceImpl implements OrderPayService {
         if (CollUtil.isEmpty(orderInfoVoList)) {
             return BigDecimal.ZERO;
         }
+        List<Integer> productIds = orderInfoVoList.stream()
+                .map(StoreOrderInfoOldVo::getProductId)
+                .filter(ObjectUtil::isNotNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Integer, StoreProduct> productMap = CollUtil.isEmpty(productIds)
+                ? new HashMap<>()
+                : storeProductService.getListInIds(productIds).stream()
+                .collect(Collectors.toMap(StoreProduct::getId, p -> p, (a, b) -> a));
         BigDecimal totalBrokerPrice = BigDecimal.ZERO;
         for (StoreOrderInfoOldVo orderInfoVo : orderInfoVoList) {
+            StoreProduct product = productMap.get(orderInfoVo.getProductId());
+            // 未配置或默认参与；显式关闭则跳过
+            if (ObjectUtil.isNotNull(product) && Boolean.FALSE.equals(product.getIsBrokerage())) {
+                continue;
+            }
             BigDecimal brokeragePrice;
             if (ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())) {
                 brokeragePrice = orderInfoVo.getInfo().getVipPrice().multiply(rateBigDecimal).setScale(2, BigDecimal.ROUND_DOWN);

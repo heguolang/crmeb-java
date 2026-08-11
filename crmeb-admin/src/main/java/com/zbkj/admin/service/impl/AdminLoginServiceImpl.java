@@ -98,19 +98,7 @@ public class AdminLoginServiceImpl implements AdminLoginService {
      */
     @Override
     public SystemLoginResponse login(SystemAdminLoginRequest systemAdminLoginRequest, String ip) {
-        Integer errorNum = accountDetection(systemAdminLoginRequest.getAccount());
-        if (errorNum > 3) {
-            if (ObjectUtil.isNull(systemAdminLoginRequest.getCaptchaVO())) {
-                throw new CrmebException("验证码信息不存在");
-            }
-            // 校验验证码
-            ResponseModel responseModel = safetyService.verifySafetyCode(systemAdminLoginRequest.getCaptchaVO());
-            if (!responseModel.getRepCode().equals("0000")) {
-                logger.error("验证码登录失败，repCode = {}, repMsg = {}", responseModel.getRepCode(), responseModel.getRepMsg());
-                accountErrorNumAdd(systemAdminLoginRequest.getAccount());
-                throw new CrmebException("验证码校验失败");
-            }
-        }
+        // 行为验证码已关闭，不再校验
         // 用户验证
         Authentication authentication = null;
         // 该方法会去调用UserDetailsServiceImpl.loadUserByUsername

@@ -7,6 +7,7 @@ import com.zbkj.common.constants.BrokerageRecordConstants;
 import com.zbkj.common.constants.Constants;
 import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.model.order.StoreOrder;
+import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.system.SystemTeamLevel;
 import com.zbkj.common.model.system.SystemTeamLevelConfig;
 import com.zbkj.common.model.user.User;
@@ -14,6 +15,7 @@ import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.utils.CrmebDateUtil;
 import com.zbkj.common.vo.StoreOrderInfoOldVo;
 import com.zbkj.service.service.StoreOrderInfoService;
+import com.zbkj.service.service.StoreProductService;
 import com.zbkj.service.service.SystemConfigService;
 import com.zbkj.service.service.SystemTeamLevelConfigService;
 import com.zbkj.service.service.SystemTeamLevelService;
@@ -25,10 +27,13 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 团队奖分润：沿推荐链向上按团队极差比例递扣分配，平级时按各等级平级奖配置补发
@@ -50,6 +55,9 @@ public class TeamBrokerageServiceImpl implements TeamBrokerageService {
 
     @Autowired
     private StoreOrderInfoService storeOrderInfoService;
+
+    @Autowired
+    private StoreProductService storeProductService;
 
     @Override
     public List<UserBrokerageRecord> assignTeamBrokerage(StoreOrder storeOrder) {
@@ -165,8 +173,22 @@ public class TeamBrokerageServiceImpl implements TeamBrokerageService {
         if (CollUtil.isEmpty(orderInfoVoList)) {
             return BigDecimal.ZERO;
         }
+        List<Integer> productIds = orderInfoVoList.stream()
+                .map(StoreOrderInfoOldVo::getProductId)
+                .filter(ObjectUtil::isNotNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Integer, StoreProduct> productMap = CollUtil.isEmpty(productIds)
+                ? new HashMap<>()
+                : storeProductService.getListInIds(productIds).stream()
+                .collect(Collectors.toMap(StoreProduct::getId, p -> p, (a, b) -> a));
         BigDecimal total = BigDecimal.ZERO;
         for (StoreOrderInfoOldVo orderInfoVo : orderInfoVoList) {
+            StoreProduct product = productMap.get(orderInfoVo.getProductId());
+            // 未配置或默认参与；显式关闭则跳过
+            if (ObjectUtil.isNotNull(product) && Boolean.FALSE.equals(product.getIsTeamBrokerage())) {
+                continue;
+            }
             BigDecimal brokeragePrice;
             if (ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())) {
                 brokeragePrice = orderInfoVo.getInfo().getVipPrice().multiply(rateDecimal).setScale(2, RoundingMode.DOWN);

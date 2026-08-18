@@ -22,7 +22,7 @@ public class IntegralToVoucherRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty(value = "用于兑换的积分数", required = true)
-    @NotNull(message = "积分数不能为空")
-    @Min(value = 1, message = "积分数至少为1")
+    @NotNull(message = "信用值不能为空")
+    @Min(value = 1, message = "信用值至少为1")
     private Integer integral;
 }

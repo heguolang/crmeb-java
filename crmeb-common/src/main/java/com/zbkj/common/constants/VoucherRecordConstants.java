@@ -16,9 +16,9 @@ public class VoucherRecordConstants {
     public static final String LINK_TYPE_TO_WARRANT = "to_warrant";
     public static final String LINK_TYPE_SYSTEM = "system";
 
-    public static final String TITLE_EXCHANGE = "积分兑换消费券";
-    public static final String TITLE_DAILY_RELEASE = "每日积分释放消费券";
-    public static final String TITLE_TO_BALANCE = "消费券兑换余额";
-    public static final String TITLE_TO_WARRANT = "兑换权证扣减消费券";
-    public static final String TITLE_SYSTEM = "后台消费券操作";
+    public static final String TITLE_EXCHANGE = "信用值兑换CCEA";
+    public static final String TITLE_DAILY_RELEASE = "每日信用值释放CCEA";
+    public static final String TITLE_TO_BALANCE = "CCEA兑换余额";
+    public static final String TITLE_TO_WARRANT = "兑换CEA扣减CCEA";
+    public static final String TITLE_SYSTEM = "后台CCEA操作";
 }

@@ -390,7 +390,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             if (totalIntegralAdd.compareTo(BigDecimal.ZERO) > 0) {
                 Boolean integralOk = userService.operationIntegral(user.getUid(), totalIntegralAdd, integralBeforeCredit, "add");
                 if (!Boolean.TRUE.equals(integralOk)) {
-                    throw new CrmebException("积分到账失败");
+                    throw new CrmebException("信用值到账失败");
                 }
             }
 
@@ -819,7 +819,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             throw new CrmebException("用户余额不足");
         }
         if (user.getIntegral() == null || user.getIntegral().compareTo(BigDecimal.valueOf(storeOrder.getUseIntegral())) < 0) {
-            throw new CrmebException("用户积分不足");
+            throw new CrmebException("用户信用值不足");
         }
         storeOrder.setPaid(true);
         storeOrder.setPayTime(CrmebDateUtil.nowDateTime());
@@ -950,7 +950,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
 
         if (user.getIntegral() == null || user.getIntegral().compareTo(BigDecimal.valueOf(storeOrder.getUseIntegral())) < 0) {
-            throw new CrmebException("用户积分不足");
+            throw new CrmebException("用户信用值不足");
         }
 
         OrderPayResultResponse response = new OrderPayResultResponse();

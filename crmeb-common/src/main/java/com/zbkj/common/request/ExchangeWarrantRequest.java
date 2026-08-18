@@ -33,6 +33,6 @@ public class ExchangeWarrantRequest implements Serializable {
     private BigDecimal amount;
 
     @ApiModelProperty(value = "权证第三方地址（兑换时一并提交）", required = true)
-    @NotBlank(message = "请输入权证地址")
+    @NotBlank(message = "请输入地址")
     private String address;
 }

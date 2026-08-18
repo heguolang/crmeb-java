@@ -425,7 +425,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                 if (totalSub.compareTo(BigDecimal.ZERO) > 0) {
                     Boolean integralOk = userService.operationIntegral(storeOrder.getUid(), totalSub, before, "sub");
                     if (!Boolean.TRUE.equals(integralOk)) {
-                        throw new CrmebException("退款扣回积分失败");
+                        throw new CrmebException("退款扣回信用值失败");
                     }
                 }
             }
@@ -644,7 +644,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                 if (totalAdd.compareTo(BigDecimal.ZERO) > 0) {
                     Boolean integralOk = userService.operationIntegral(storeOrder.getUid(), totalAdd, before, "add");
                     if (!Boolean.TRUE.equals(integralOk)) {
-                        throw new CrmebException("收货积分到账失败");
+                        throw new CrmebException("收货信用值到账失败");
                     }
                 }
                 userIntegralRecordService.updateBatchById(pendingIntegralList);

@@ -44,7 +44,7 @@ public class OrderComputedPriceRequest {
     private Integer shippingType;
 
     @ApiModelProperty(value = "是否使用积分")
-    @NotNull(message = "是否使用积分不能为空")
+    @NotNull(message = "是否使用信用值不能为空")
     private Boolean useIntegral;
 
 }

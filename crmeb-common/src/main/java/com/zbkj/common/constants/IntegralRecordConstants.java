@@ -45,10 +45,10 @@ public class IntegralRecordConstants {
     public static final String BROKERAGE_RECORD_TITLE_ORDER = "用户订单付款成功";
 
     /** 佣金记录标题—签到经验奖励 */
-    public static final String BROKERAGE_RECORD_TITLE_SIGN = "签到积分奖励";
+    public static final String BROKERAGE_RECORD_TITLE_SIGN = "签到信用值奖励";
 
     /** 佣金记录标题—后台积分操作 */
-    public static final String BROKERAGE_RECORD_TITLE_SYSTEM = "后台积分操作";
+    public static final String BROKERAGE_RECORD_TITLE_SYSTEM = "后台信用值操作";
 
     /** 佣金记录标题—订单退款 */
     public static final String BROKERAGE_RECORD_TITLE_REFUND = "订单退款";

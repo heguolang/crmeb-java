@@ -96,20 +96,20 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         int useIntegral = request.getIntegral();
         BigDecimal ratio = getDecimalConfig(SysConfigConstants.CONFIG_KEY_INTEGRAL_TO_VOUCHER_RATIO, "100");
         if (ratio.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new CrmebException("积分兑换消费券比例未正确配置");
+            throw new CrmebException("信用值兑换CCEA比例未正确配置");
         }
         if (useIntegral < ratio.intValue()) {
-            throw new CrmebException(StrUtil.format("兑换积分数至少为{}", ratio.intValue()));
+            throw new CrmebException(StrUtil.format("兑换信用值至少为{}", ratio.intValue()));
         }
         // 只兑换整份：向下取整
         int exchangeTimes = useIntegral / ratio.intValue();
         BigDecimal realIntegral = BigDecimal.valueOf(exchangeTimes).multiply(ratio);
         BigDecimal voucherAmount = BigDecimal.valueOf(exchangeTimes);
         if (realIntegral.compareTo(BigDecimal.ZERO) <= 0 || voucherAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new CrmebException("兑换结果为0，请调整积分数");
+            throw new CrmebException("兑换结果为0，请调整信用值");
         }
         if (nullToZero(user.getIntegral()).compareTo(realIntegral) < 0) {
-            throw new CrmebException("积分不足");
+            throw new CrmebException("信用值不足");
         }
         return doIntegralToVoucher(user, realIntegral, voucherAmount, VoucherRecordConstants.LINK_TYPE_EXCHANGE,
                 VoucherRecordConstants.TITLE_EXCHANGE, "用户自主兑换");
@@ -122,15 +122,15 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         BigDecimal useVoucher = request.getVoucher();
         BigDecimal ratio = getDecimalConfig(SysConfigConstants.CONFIG_KEY_VOUCHER_TO_BALANCE_RATIO, "10");
         if (ratio.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new CrmebException("消费券兑换余额比例未正确配置");
+            throw new CrmebException("CCEA兑换余额比例未正确配置");
         }
         if (nullToZero(user.getConsumeVoucher()).compareTo(useVoucher) < 0) {
-            throw new CrmebException("消费券不足");
+            throw new CrmebException("CCEA不足");
         }
         // 整份兑换：向下取整
         BigDecimal times = useVoucher.divide(ratio, 0, RoundingMode.DOWN);
         if (times.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new CrmebException(StrUtil.format("兑换消费券至少为{}", ratio));
+            throw new CrmebException(StrUtil.format("兑换CCEA至少为{}", ratio));
         }
         BigDecimal realVoucher = times.multiply(ratio);
         BigDecimal balanceAmount = times;
@@ -138,11 +138,11 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         Boolean execute = transactionTemplate.execute(e -> {
             User fresh = userService.getById(user.getUid());
             if (nullToZero(fresh.getConsumeVoucher()).compareTo(realVoucher) < 0) {
-                throw new CrmebException("消费券不足");
+                throw new CrmebException("CCEA不足");
             }
             Boolean subOk = userService.operationVoucher(fresh.getUid(), realVoucher, nullToZero(fresh.getConsumeVoucher()), "sub");
             if (!subOk) {
-                throw new CrmebException("扣减消费券失败");
+                throw new CrmebException("扣减CCEA失败");
             }
             Boolean addOk = userService.operationNowMoney(fresh.getUid(), balanceAmount, fresh.getNowMoney(), "add");
             if (!addOk) {
@@ -180,7 +180,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             return Boolean.TRUE;
         });
         if (!Boolean.TRUE.equals(execute)) {
-            throw new CrmebException("消费券兑换余额失败");
+            throw new CrmebException("CCEA兑换余额失败");
         }
         return true;
     }
@@ -190,7 +190,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         checkSwitchOn();
         String payType = StrUtil.trim(request.getPayType()).toLowerCase();
         if (!"integral".equals(payType) && !"voucher".equals(payType)) {
-            throw new CrmebException("兑换方式仅支持积分或消费券");
+            throw new CrmebException("兑换方式仅支持信用值或CCEA");
         }
         String address = normalizeWarrantAddress(request.getAddress());
         if ("integral".equals(payType)) {
@@ -203,34 +203,34 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         User user = userService.getInfoException();
         int ratio = getIntConfig(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_INTEGRAL, 100);
         if (ratio <= 0) {
-            throw new CrmebException("积分兑权证比例未正确配置");
+            throw new CrmebException("信用值兑CEA比例未正确配置");
         }
         int useIntegral = amount.setScale(0, RoundingMode.DOWN).intValue();
         if (useIntegral <= 0) {
-            throw new CrmebException("请输入有效积分数");
+            throw new CrmebException("请输入有效信用值");
         }
         // 按比例精确兑换，支持到 0.001：如 1000 积分 = 1 权证，则 1 积分 = 0.001 权证
         BigDecimal warrantAmount = BigDecimal.valueOf(useIntegral)
                 .divide(BigDecimal.valueOf(ratio), 3, RoundingMode.DOWN);
         if (warrantAmount.compareTo(new BigDecimal("0.001")) < 0) {
-            throw new CrmebException(StrUtil.format("兑换后权证不足0.001，至少需要{}积分",
+            throw new CrmebException(StrUtil.format("兑换后CEA不足0.001，至少需要{}信用值",
                     BigDecimal.valueOf(ratio).multiply(new BigDecimal("0.001")).setScale(0, RoundingMode.UP).intValue()));
         }
         BigDecimal useIntegralDecimal = BigDecimal.valueOf(useIntegral);
         if (nullToZero(user.getIntegral()).compareTo(useIntegralDecimal) < 0) {
-            throw new CrmebException("积分不足");
+            throw new CrmebException("信用值不足");
         }
 
         Boolean execute = transactionTemplate.execute(e -> {
             User fresh = userService.getById(user.getUid());
             if (nullToZero(fresh.getIntegral()).compareTo(useIntegralDecimal) < 0) {
-                throw new CrmebException("积分不足");
+                throw new CrmebException("信用值不足");
             }
             if (!userService.operationIntegral(fresh.getUid(), useIntegralDecimal, nullToZero(fresh.getIntegral()), "sub")) {
-                throw new CrmebException("扣减积分失败");
+                throw new CrmebException("扣减信用值失败");
             }
             if (!userService.operationWarrant(fresh.getUid(), warrantAmount, nullToZero(fresh.getWarrant()), "add")) {
-                throw new CrmebException("增加权证失败");
+                throw new CrmebException("增加CEA失败");
             }
             saveWarrantAddress(fresh.getUid(), address);
 
@@ -267,7 +267,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             return Boolean.TRUE;
         });
         if (!Boolean.TRUE.equals(execute)) {
-            throw new CrmebException("积分兑换权证失败");
+            throw new CrmebException("信用值兑换CEA失败");
         }
         return true;
     }
@@ -276,32 +276,32 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         User user = userService.getInfoException();
         BigDecimal ratio = getDecimalConfig(SysConfigConstants.CONFIG_KEY_WARRANT_NEED_VOUCHER, "5");
         if (ratio.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new CrmebException("消费券兑权证比例未正确配置");
+            throw new CrmebException("CCEA兑CEA比例未正确配置");
         }
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new CrmebException("请输入有效消费券数量");
+            throw new CrmebException("请输入有效CCEA数量");
         }
         if (nullToZero(user.getConsumeVoucher()).compareTo(amount) < 0) {
-            throw new CrmebException("消费券不足");
+            throw new CrmebException("CCEA不足");
         }
         BigDecimal realVoucher = amount.setScale(2, RoundingMode.DOWN);
         // 按比例精确兑换，支持到 0.001
         BigDecimal warrantAmount = realVoucher.divide(ratio, 3, RoundingMode.DOWN);
         if (warrantAmount.compareTo(new BigDecimal("0.001")) < 0) {
-            throw new CrmebException(StrUtil.format("兑换后权证不足0.001，至少需要{}消费券",
+            throw new CrmebException(StrUtil.format("兑换后CEA不足0.001，至少需要{}CCEA",
                     ratio.multiply(new BigDecimal("0.001")).stripTrailingZeros().toPlainString()));
         }
 
         Boolean execute = transactionTemplate.execute(e -> {
             User fresh = userService.getById(user.getUid());
             if (nullToZero(fresh.getConsumeVoucher()).compareTo(realVoucher) < 0) {
-                throw new CrmebException("消费券不足");
+                throw new CrmebException("CCEA不足");
             }
             if (!userService.operationVoucher(fresh.getUid(), realVoucher, nullToZero(fresh.getConsumeVoucher()), "sub")) {
-                throw new CrmebException("扣减消费券失败");
+                throw new CrmebException("扣减CCEA失败");
             }
             if (!userService.operationWarrant(fresh.getUid(), warrantAmount, nullToZero(fresh.getWarrant()), "add")) {
-                throw new CrmebException("增加权证失败");
+                throw new CrmebException("增加CEA失败");
             }
             saveWarrantAddress(fresh.getUid(), address);
 
@@ -338,7 +338,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             return Boolean.TRUE;
         });
         if (!Boolean.TRUE.equals(execute)) {
-            throw new CrmebException("消费券兑换权证失败");
+            throw new CrmebException("CCEA兑换CEA失败");
         }
         return true;
     }
@@ -626,13 +626,13 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         Boolean execute = transactionTemplate.execute(e -> {
             User fresh = userService.getById(user.getUid());
             if (ObjectUtil.isNull(fresh) || nullToZero(fresh.getIntegral()).compareTo(realIntegral) < 0) {
-                throw new CrmebException("积分不足");
+                throw new CrmebException("信用值不足");
             }
             if (!userService.operationIntegral(fresh.getUid(), realIntegral, nullToZero(fresh.getIntegral()), "sub")) {
-                throw new CrmebException("扣减积分失败");
+                throw new CrmebException("扣减信用值失败");
             }
             if (!userService.operationVoucher(fresh.getUid(), voucherAmount, nullToZero(fresh.getConsumeVoucher()), "add")) {
-                throw new CrmebException("增加消费券失败");
+                throw new CrmebException("增加CCEA失败");
             }
 
             Date now = CrmebDateUtil.nowDateTime();
@@ -666,7 +666,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             return Boolean.TRUE;
         });
         if (!Boolean.TRUE.equals(execute)) {
-            throw new CrmebException("积分兑换消费券失败");
+            throw new CrmebException("信用值兑换CCEA失败");
         }
         return true;
     }

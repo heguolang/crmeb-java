@@ -303,7 +303,7 @@ public class Constants {
     //签到
     public static final Integer SIGN_TYPE_INTEGRAL = 1; //积分
     public static final Integer SIGN_TYPE_EXPERIENCE = 2; //经验
-    public static final String SIGN_TYPE_INTEGRAL_TITLE = "签到积分奖励"; //积分
+    public static final String SIGN_TYPE_INTEGRAL_TITLE = "签到信用值奖励"; //积分
     public static final String SIGN_TYPE_EXPERIENCE_TITLE = "签到经验奖励"; //经验
 
 

@@ -261,12 +261,12 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
         if (request.getIntegralType().equals(2) && request.getIntegralValue() != 0) {
             if (nullToZeroIntegral(user.getIntegral()).subtract(BigDecimal.valueOf(request.getIntegralValue())).compareTo(BigDecimal.ZERO) < 0) {
-                throw new CrmebException("积分扣减后不能小于0");
+                throw new CrmebException("信用值扣减后不能小于0");
             }
         }
         if (request.getIntegralType().equals(1) && request.getIntegralValue() != 0) {
             if (nullToZeroIntegral(user.getIntegral()).add(BigDecimal.valueOf(request.getIntegralValue())).compareTo(new BigDecimal("99999999")) > 0) {
-                throw new CrmebException("积分添加后不能大于99999999");
+                throw new CrmebException("信用值添加后不能大于99999999");
             }
         }
 
@@ -328,13 +328,13 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
                 if (request.getIntegralType() == 1) {// 增加
                     integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD);
                     integralRecord.setBalance(currentIntegral.add(integralValue));
-                    integralRecord.setMark(StrUtil.format("后台操作增加了{}积分", request.getIntegralValue()));
+                    integralRecord.setMark(StrUtil.format("后台操作增加了{}信用值", request.getIntegralValue()));
 
                     operationIntegral(user.getUid(), integralValue, currentIntegral, "add");
                 } else {
                     integralRecord.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB);
                     integralRecord.setBalance(currentIntegral.subtract(integralValue));
-                    integralRecord.setMark(StrUtil.format("后台操作减少了{}积分", request.getIntegralValue()));
+                    integralRecord.setMark(StrUtil.format("后台操作减少了{}信用值", request.getIntegralValue()));
                     operationIntegral(user.getUid(), integralValue, currentIntegral, "sub");
                 }
                 userIntegralRecordService.save(integralRecord);
@@ -368,7 +368,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         });
 
         if (!execute) {
-            throw new CrmebException("修改积分/余额/佣金失败");
+            throw new CrmebException("修改信用值/余额/佣金失败");
         }
         return execute;
     }

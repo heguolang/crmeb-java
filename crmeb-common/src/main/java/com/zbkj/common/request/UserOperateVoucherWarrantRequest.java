@@ -32,7 +32,7 @@ public class UserOperateVoucherWarrantRequest implements Serializable {
 
     @ApiModelProperty(value = "消费券类型，1=增加，2=减少")
     @NotNull
-    @Range(min = 1, max = 2, message = "请选择正确的消费券类型")
+    @Range(min = 1, max = 2, message = "请选择正确的CCEA类型")
     private Integer voucherType;
 
     @ApiModelProperty(value = "消费券变动值")
@@ -42,7 +42,7 @@ public class UserOperateVoucherWarrantRequest implements Serializable {
 
     @ApiModelProperty(value = "权证类型，1=增加，2=减少")
     @NotNull
-    @Range(min = 1, max = 2, message = "请选择正确的权证类型")
+    @Range(min = 1, max = 2, message = "请选择正确的CEA类型")
     private Integer warrantType;
 
     @ApiModelProperty(value = "权证变动值")

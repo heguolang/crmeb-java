@@ -158,7 +158,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             voucherRecord.setTitle(VoucherRecordConstants.TITLE_TO_BALANCE);
             voucherRecord.setVoucher(realVoucher);
             voucherRecord.setBalance(nullToZero(fresh.getConsumeVoucher()).subtract(realVoucher));
-            voucherRecord.setMark(StrUtil.format("消费券{}兑换余额{}", realVoucher, balanceAmount));
+            voucherRecord.setMark(StrUtil.format("CCEA{}兑换余额{}", realVoucher, balanceAmount));
             voucherRecord.setStatus(VoucherRecordConstants.STATUS_COMPLETE);
             voucherRecord.setCreateTime(now);
             voucherRecord.setUpdateTime(now);
@@ -168,12 +168,12 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             userBill.setUid(fresh.getUid());
             userBill.setLinkId("0");
             userBill.setPm(1);
-            userBill.setTitle("消费券兑换余额");
+            userBill.setTitle("CCEA兑换余额");
             userBill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
             userBill.setType("voucher_exchange");
             userBill.setNumber(balanceAmount);
             userBill.setBalance(fresh.getNowMoney().add(balanceAmount));
-            userBill.setMark(StrUtil.format("消费券兑换增加余额{}", balanceAmount));
+            userBill.setMark(StrUtil.format("CCEA兑换增加余额{}", balanceAmount));
             userBill.setStatus(1);
             userBill.setCreateTime(now);
             userBillService.save(userBill);
@@ -243,7 +243,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             integralRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_INTEGRAL);
             integralRecord.setIntegral(useIntegralDecimal);
             integralRecord.setBalance(nullToZero(fresh.getIntegral()).subtract(useIntegralDecimal));
-            integralRecord.setMark(StrUtil.format("积分{}兑换权证{}", useIntegral, warrantAmount));
+            integralRecord.setMark(StrUtil.format("信用值{}兑换CEA{}", useIntegral, warrantAmount));
             integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
             integralRecord.setCreateTime(now);
             integralRecord.setUpdateTime(now);
@@ -256,7 +256,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             warrantRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_INTEGRAL);
             warrantRecord.setWarrant(warrantAmount);
             warrantRecord.setBalance(nullToZero(fresh.getWarrant()).add(warrantAmount));
-            warrantRecord.setMark(StrUtil.format("消耗积分{}兑换权证{}，地址{}", useIntegral, warrantAmount, address));
+            warrantRecord.setMark(StrUtil.format("消耗信用值{}兑换CEA{}，地址{}", useIntegral, warrantAmount, address));
             warrantRecord.setStatus(WarrantRecordConstants.STATUS_COMPLETE);
             warrantRecord.setCreateTime(now);
             warrantRecord.setUpdateTime(now);
@@ -314,7 +314,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             voucherRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_VOUCHER);
             voucherRecord.setVoucher(realVoucher);
             voucherRecord.setBalance(nullToZero(fresh.getConsumeVoucher()).subtract(realVoucher));
-            voucherRecord.setMark(StrUtil.format("消费券{}兑换权证{}", realVoucher, warrantAmount));
+            voucherRecord.setMark(StrUtil.format("CCEA{}兑换CEA{}", realVoucher, warrantAmount));
             voucherRecord.setStatus(VoucherRecordConstants.STATUS_COMPLETE);
             voucherRecord.setCreateTime(now);
             voucherRecord.setUpdateTime(now);
@@ -327,7 +327,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             warrantRecord.setTitle(WarrantRecordConstants.TITLE_EXCHANGE_VOUCHER);
             warrantRecord.setWarrant(warrantAmount);
             warrantRecord.setBalance(nullToZero(fresh.getWarrant()).add(warrantAmount));
-            warrantRecord.setMark(StrUtil.format("消耗消费券{}兑换权证{}，地址{}", realVoucher, warrantAmount, address));
+            warrantRecord.setMark(StrUtil.format("消耗CCEA{}兑换CEA{}，地址{}", realVoucher, warrantAmount, address));
             warrantRecord.setStatus(WarrantRecordConstants.STATUS_COMPLETE);
             warrantRecord.setCreateTime(now);
             warrantRecord.setUpdateTime(now);
@@ -460,7 +460,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
                     doIntegralToVoucher(fresh, releaseIntegral, voucherAmount,
                             VoucherRecordConstants.LINK_TYPE_DAILY_RELEASE,
                             VoucherRecordConstants.TITLE_DAILY_RELEASE,
-                            StrUtil.format("每日释放比例{}%，释放兑换{}积分=1消费券，释放积分{}",
+                            StrUtil.format("每日释放比例{}%，释放兑换{}信用值=1CCEA，释放信用值{}",
                                     releasePercent, exchangeRatio, releaseIntegral));
                 } catch (Exception ex) {
                     logger.error("每日积分释放失败 uid={}", user.getUid(), ex);
@@ -489,12 +489,12 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
 
     @Override
     public Boolean saveConfig(VoucherWarrantConfigRequest request) {
-        validatePositiveNumber(request.getIntegralToVoucherRatio(), "积分兑换消费券比例");
+        validatePositiveNumber(request.getIntegralToVoucherRatio(), "信用值兑换CCEA比例");
         validatePercent(request.getIntegralDailyReleaseRatio(), "每日释放百分比");
         validatePositiveNumber(request.getIntegralDailyReleaseExchangeRatio(), "每日释放兑换比例");
-        validatePositiveNumber(request.getVoucherToBalanceRatio(), "消费券兑换余额比例");
-        validatePositiveNumber(request.getWarrantNeedVoucher(), "消费券兑1权证所需数量");
-        validatePositiveNumber(request.getWarrantNeedIntegral(), "积分兑1权证所需数量");
+        validatePositiveNumber(request.getVoucherToBalanceRatio(), "CCEA兑换余额比例");
+        validatePositiveNumber(request.getWarrantNeedVoucher(), "CCEA兑1CEA所需数量");
+        validatePositiveNumber(request.getWarrantNeedIntegral(), "信用值兑1CEA所需数量");
 
         if (StrUtil.isNotBlank(request.getIntegralToVoucherRatio())) {
             systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_INTEGRAL_TO_VOUCHER_RATIO, request.getIntegralToVoucherRatio().trim());
@@ -539,10 +539,10 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
                 User fresh = userService.getById(request.getUid());
                 String opType = request.getVoucherType() == 1 ? "add" : "sub";
                 if ("sub".equals(opType) && nullToZero(fresh.getConsumeVoucher()).compareTo(request.getVoucherValue()) < 0) {
-                    throw new CrmebException("消费券扣减后不能小于0");
+                    throw new CrmebException("CCEA扣减后不能小于0");
                 }
                 if (!userService.operationVoucher(fresh.getUid(), request.getVoucherValue(), nullToZero(fresh.getConsumeVoucher()), opType)) {
-                    throw new CrmebException("消费券操作失败");
+                    throw new CrmebException("CCEA操作失败");
                 }
                 UserVoucherRecord record = new UserVoucherRecord();
                 record.setUid(fresh.getUid());
@@ -554,7 +554,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
                 record.setBalance(request.getVoucherType() == 1
                         ? nullToZero(fresh.getConsumeVoucher()).add(request.getVoucherValue())
                         : nullToZero(fresh.getConsumeVoucher()).subtract(request.getVoucherValue()));
-                record.setMark(StrUtil.format("后台{}消费券{}", request.getVoucherType() == 1 ? "增加" : "减少", request.getVoucherValue()));
+                record.setMark(StrUtil.format("后台{}CCEA{}", request.getVoucherType() == 1 ? "增加" : "减少", request.getVoucherValue()));
                 record.setStatus(VoucherRecordConstants.STATUS_COMPLETE);
                 record.setCreateTime(now);
                 record.setUpdateTime(now);
@@ -564,10 +564,10 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
                 User fresh = userService.getById(request.getUid());
                 String opType = request.getWarrantType() == 1 ? "add" : "sub";
                 if ("sub".equals(opType) && nullToZero(fresh.getWarrant()).compareTo(request.getWarrantValue()) < 0) {
-                    throw new CrmebException("权证扣减后不能小于0");
+                    throw new CrmebException("CEA扣减后不能小于0");
                 }
                 if (!userService.operationWarrant(fresh.getUid(), request.getWarrantValue(), nullToZero(fresh.getWarrant()), opType)) {
-                    throw new CrmebException("权证操作失败");
+                    throw new CrmebException("CEA操作失败");
                 }
                 UserWarrantRecord record = new UserWarrantRecord();
                 record.setUid(fresh.getUid());
@@ -579,7 +579,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
                 record.setBalance(request.getWarrantType() == 1
                         ? nullToZero(fresh.getWarrant()).add(request.getWarrantValue())
                         : nullToZero(fresh.getWarrant()).subtract(request.getWarrantValue()));
-                record.setMark(StrUtil.format("后台{}权证{}", request.getWarrantType() == 1 ? "增加" : "减少", request.getWarrantValue()));
+                record.setMark(StrUtil.format("后台{}CEA{}", request.getWarrantType() == 1 ? "增加" : "减少", request.getWarrantValue()));
                 record.setStatus(WarrantRecordConstants.STATUS_COMPLETE);
                 record.setCreateTime(now);
                 record.setUpdateTime(now);
@@ -644,7 +644,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             integralRecord.setTitle(title);
             integralRecord.setIntegral(realIntegral);
             integralRecord.setBalance(nullToZero(fresh.getIntegral()).subtract(realIntegral));
-            integralRecord.setMark(StrUtil.format("{}，扣减积分{}", markSuffix, realIntegral));
+            integralRecord.setMark(StrUtil.format("{}，扣减信用值{}", markSuffix, realIntegral));
             integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
             integralRecord.setCreateTime(now);
             integralRecord.setUpdateTime(now);
@@ -658,7 +658,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
             voucherRecord.setTitle(title);
             voucherRecord.setVoucher(voucherAmount);
             voucherRecord.setBalance(nullToZero(fresh.getConsumeVoucher()).add(voucherAmount));
-            voucherRecord.setMark(StrUtil.format("{}，增加消费券{}", markSuffix, voucherAmount));
+            voucherRecord.setMark(StrUtil.format("{}，增加CCEA{}", markSuffix, voucherAmount));
             voucherRecord.setStatus(VoucherRecordConstants.STATUS_COMPLETE);
             voucherRecord.setCreateTime(now);
             voucherRecord.setUpdateTime(now);

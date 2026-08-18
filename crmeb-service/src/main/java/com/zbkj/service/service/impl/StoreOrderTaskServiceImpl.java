@@ -359,7 +359,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                 record.setTitle(IntegralRecordConstants.BROKERAGE_RECORD_TITLE_REFUND);
                 record.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD);
                 record.setBalance(user.getIntegral());
-                record.setMark(StrUtil.format("订单退款，返还支付扣除得{}积分", record.getIntegral()));
+                record.setMark(StrUtil.format("订单退款，返还支付扣除得{}信用值", record.getIntegral()));
                 record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
                 record.setUpdateTime(cn.hutool.core.date.DateUtil.date());
             } else if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD)) {// 赠送积分

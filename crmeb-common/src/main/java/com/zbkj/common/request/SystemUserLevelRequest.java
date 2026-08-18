@@ -62,7 +62,7 @@ public class SystemUserLevelRequest implements Serializable {
     private Integer upgradeValue;
 
     @ApiModelProperty(value = "等级赠送积分（每单固定赠送，手输多少送多少）", example = "200")
-    @Min(value = 0, message = "等级赠送积分不能小于0")
+    @Min(value = 0, message = "等级赠送信用值不能小于0")
     private Integer giveIntegral;
 
     @ApiModelProperty(value = "等级权益描述", example = "消费满126元升级，每单赠送200积分")

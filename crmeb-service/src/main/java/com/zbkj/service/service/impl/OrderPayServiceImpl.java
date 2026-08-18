@@ -1130,7 +1130,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         integralRecord.setTitle(IntegralRecordConstants.BROKERAGE_RECORD_TITLE_ORDER);
         integralRecord.setIntegral(BigDecimal.valueOf(storeOrder.getUseIntegral()));
         integralRecord.setBalance(user.getIntegral());
-        integralRecord.setMark(StrUtil.format("订单支付抵扣{}积分购买商品", storeOrder.getUseIntegral()));
+        integralRecord.setMark(StrUtil.format("订单支付抵扣{}信用值购买商品", storeOrder.getUseIntegral()));
         integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
         return integralRecord;
     }
@@ -1181,13 +1181,13 @@ public class OrderPayServiceImpl implements OrderPayService {
         integralRecord.setIntegral(integralAmount);
         integralRecord.setBalance(balance);
         if (type.equals("order")){
-            integralRecord.setMark(StrUtil.format("用户付款成功,订单增加{}积分", integral));
+            integralRecord.setMark(StrUtil.format("用户付款成功,订单增加{}信用值", integral));
         }
         if (type.equals("product")) {
-            integralRecord.setMark(StrUtil.format("用户付款成功,商品增加{}积分", integral));
+            integralRecord.setMark(StrUtil.format("用户付款成功,商品增加{}信用值", integral));
         }
         if (type.equals("level")) {
-            integralRecord.setMark(StrUtil.format("用户付款成功,会员等级赠送{}积分", integral));
+            integralRecord.setMark(StrUtil.format("用户付款成功,会员等级赠送{}信用值", integral));
         }
         integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE);
         // 获取积分冻结期

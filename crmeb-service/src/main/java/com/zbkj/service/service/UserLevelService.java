@@ -60,6 +60,13 @@ public interface UserLevelService extends IService<UserLevel> {
     SystemUserLevel resolveMatchedLevel(User user);
 
     /**
+     * 获取用于奖励计算的会员等级（后台手动等级与统计匹配等级取较高者）
+     * @param user 用户
+     * @return 有效等级配置
+     */
+    SystemUserLevel resolveEffectiveLevelForReward(User user);
+
+    /**
      * 获取用户当前等级每单赠送积分
      * @param user 用户
      * @return 赠送积分数

@@ -277,7 +277,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
 
         // 按本单支付后统计数据匹配会员等级，读取该等级返佣配置
-        SystemUserLevel matchedBrokerageLevel = userLevelService.resolveMatchedLevel(user);
+        SystemUserLevel matchedBrokerageLevel = userLevelService.resolveEffectiveLevelForReward(user);
         Integer brokerageLevelId = ObjectUtil.isNotNull(matchedBrokerageLevel) ? matchedBrokerageLevel.getId() : null;
 
         /**
@@ -608,7 +608,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             if (ObjectUtil.isNull(spreadUser)) {
                 return null;
             }
-            SystemUserLevel spreadMatchedLevel = userLevelService.resolveMatchedLevel(spreadUser);
+            SystemUserLevel spreadMatchedLevel = userLevelService.resolveEffectiveLevelForReward(spreadUser);
             Integer spreadLevelId = ObjectUtil.isNotNull(spreadMatchedLevel) ? spreadMatchedLevel.getId() : null;
             Integer levelRate = getLevelBrokerageRate(spreadLevelId, index);
             BigDecimal brokerage = calculateCommission(record, storeOrder.getId());
@@ -688,7 +688,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         if (ObjectUtil.isNull(spreadUser)) {
             return BigDecimal.ZERO;
         }
-        SystemUserLevel spreadMatchedLevel = userLevelService.resolveMatchedLevel(spreadUser);
+        SystemUserLevel spreadMatchedLevel = userLevelService.resolveEffectiveLevelForReward(spreadUser);
         Integer spreadLevelId = ObjectUtil.isNotNull(spreadMatchedLevel) ? spreadMatchedLevel.getId() : null;
         Integer levelRate = getLevelBrokerageRate(spreadLevelId, index);
         if (ObjectUtil.isNull(levelRate)) {

@@ -165,8 +165,25 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
     }
 
     @Override
-    public Integer getGiveIntegral(User user) {
+    public SystemUserLevel resolveEffectiveLevelForReward(User user) {
         SystemUserLevel matchedLevel = resolveMatchedLevel(user);
+        Integer assignedLevelId = ObjectUtil.defaultIfNull(user.getLevel(), 0);
+        if (assignedLevelId <= 0) {
+            return matchedLevel;
+        }
+        SystemUserLevel assignedLevel = systemUserLevelService.getByLevelId(assignedLevelId);
+        if (ObjectUtil.isNull(assignedLevel)) {
+            return matchedLevel;
+        }
+        if (ObjectUtil.isNull(matchedLevel)) {
+            return assignedLevel;
+        }
+        return assignedLevel.getGrade() >= matchedLevel.getGrade() ? assignedLevel : matchedLevel;
+    }
+
+    @Override
+    public Integer getGiveIntegral(User user) {
+        SystemUserLevel matchedLevel = resolveEffectiveLevelForReward(user);
         if (ObjectUtil.isNull(matchedLevel)) {
             return UserLevelConstants.DEFAULT_GIVE_INTEGRAL;
         }
@@ -260,7 +277,7 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
     public Integer getProjectedGiveIntegral(User user, BigDecimal payAmount) {
         User projectedUser = buildProjectedUserAfterPay(user, payAmount);
         int additionalConsumption = getAdditionalPaidConsumption(payAmount);
-        SystemUserLevel matchedLevel = resolveMatchedLevel(projectedUser, additionalConsumption);
+        SystemUserLevel matchedLevel = resolveEffectiveLevelForReward(projectedUser);
         if (ObjectUtil.isNull(matchedLevel)) {
             return UserLevelConstants.DEFAULT_GIVE_INTEGRAL;
         }
@@ -273,6 +290,7 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
     private User buildProjectedUserAfterPay(User user, BigDecimal payAmount) {
         User projectedUser = new User();
         projectedUser.setUid(user.getUid());
+        projectedUser.setLevel(user.getLevel());
         projectedUser.setExperience(ObjectUtil.defaultIfNull(user.getExperience(), 0));
         projectedUser.setPayCount(ObjectUtil.defaultIfNull(user.getPayCount(), 0));
         int additionalConsumption = getAdditionalPaidConsumption(payAmount);

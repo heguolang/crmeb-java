@@ -504,7 +504,7 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         registerThirdUserRequest.setType(Constants.USER_LOGIN_TYPE_PUBLIC);
         registerThirdUserRequest.setOpenId(oauthToken.getOpenId());
         String key = SecureUtil.md5(oauthToken.getOpenId());
-        redisUtil.set(key, JSONObject.toJSONString(registerThirdUserRequest), (long) (60 * 2), TimeUnit.MINUTES);
+        redisUtil.set(key, JSONObject.toJSONString(registerThirdUserRequest), (long) (60 * 30), TimeUnit.MINUTES);
 
         loginResponse.setType("register");
         loginResponse.setKey(key);
@@ -859,7 +859,6 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
             user = userService.registerByThird(registerThirdUserRequest);
             user.setPhone(request.getPhone());
             user.setAccount(request.getPhone());
-            user.setSpreadUid(0);
             if (StrUtil.isNotBlank(request.getPassword())) {
                 user.setPwd(CrmebUtil.encryptPassword(request.getPassword(), request.getPhone()));
             } else {

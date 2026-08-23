@@ -38,6 +38,9 @@ public class OrderInfoDetailVo {
     /** 单价 */
     private BigDecimal price;
 
+    /** 成本价（规格成本，用于分销/团队奖按毛利计佣） */
+    private BigDecimal cost;
+
     /** 购买数量 */
     private Integer payNum;
 

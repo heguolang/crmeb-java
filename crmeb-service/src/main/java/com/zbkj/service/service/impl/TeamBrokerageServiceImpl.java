@@ -8,13 +8,17 @@ import com.zbkj.common.constants.Constants;
 import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.model.order.StoreOrder;
 import com.zbkj.common.model.product.StoreProduct;
+import com.zbkj.common.model.product.StoreProductAttrValue;
 import com.zbkj.common.model.system.SystemTeamLevel;
 import com.zbkj.common.model.system.SystemTeamLevelConfig;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserBrokerageRecord;
+import com.zbkj.common.utils.BrokeragePriceUtil;
 import com.zbkj.common.utils.CrmebDateUtil;
+import com.zbkj.common.vo.OrderInfoDetailVo;
 import com.zbkj.common.vo.StoreOrderInfoOldVo;
 import com.zbkj.service.service.StoreOrderInfoService;
+import com.zbkj.service.service.StoreProductAttrValueService;
 import com.zbkj.service.service.StoreProductService;
 import com.zbkj.service.service.SystemConfigService;
 import com.zbkj.service.service.SystemTeamLevelConfigService;
@@ -58,6 +62,9 @@ public class TeamBrokerageServiceImpl implements TeamBrokerageService {
 
     @Autowired
     private StoreProductService storeProductService;
+
+    @Autowired
+    private StoreProductAttrValueService storeProductAttrValueService;
 
     @Override
     public List<UserBrokerageRecord> assignTeamBrokerage(StoreOrder storeOrder) {
@@ -182,6 +189,15 @@ public class TeamBrokerageServiceImpl implements TeamBrokerageService {
                 ? new HashMap<>()
                 : storeProductService.getListInIds(productIds).stream()
                 .collect(Collectors.toMap(StoreProduct::getId, p -> p, (a, b) -> a));
+        List<Integer> attrValueIds = orderInfoVoList.stream()
+                .map(vo -> ObjectUtil.isNotNull(vo.getInfo()) ? vo.getInfo().getAttrValueId() : null)
+                .filter(ObjectUtil::isNotNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Integer, StoreProductAttrValue> attrValueMap = CollUtil.isEmpty(attrValueIds)
+                ? new HashMap<>()
+                : storeProductAttrValueService.listByIds(attrValueIds).stream()
+                .collect(Collectors.toMap(StoreProductAttrValue::getId, a -> a, (a, b) -> a));
         BigDecimal total = BigDecimal.ZERO;
         for (StoreOrderInfoOldVo orderInfoVo : orderInfoVoList) {
             StoreProduct product = productMap.get(orderInfoVo.getProductId());
@@ -189,15 +205,13 @@ public class TeamBrokerageServiceImpl implements TeamBrokerageService {
             if (ObjectUtil.isNotNull(product) && Boolean.FALSE.equals(product.getIsTeamBrokerage())) {
                 continue;
             }
-            BigDecimal brokeragePrice;
-            if (ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())) {
-                brokeragePrice = orderInfoVo.getInfo().getVipPrice().multiply(rateDecimal).setScale(2, RoundingMode.DOWN);
-            } else {
-                brokeragePrice = orderInfoVo.getInfo().getPrice().multiply(rateDecimal).setScale(2, RoundingMode.DOWN);
+            OrderInfoDetailVo info = orderInfoVo.getInfo();
+            if (ObjectUtil.isNull(info)) {
+                continue;
             }
-            if (brokeragePrice.compareTo(BigDecimal.ZERO) > 0 && orderInfoVo.getInfo().getPayNum() > 1) {
-                brokeragePrice = brokeragePrice.multiply(new BigDecimal(orderInfoVo.getInfo().getPayNum()));
-            }
+            StoreProductAttrValue attrValue = attrValueMap.get(info.getAttrValueId());
+            // 计佣基数 = 售价(会员价) - 成本价
+            BigDecimal brokeragePrice = BrokeragePriceUtil.calcLineBrokerage(info, product, attrValue, rateDecimal);
             total = total.add(brokeragePrice);
         }
         return total;

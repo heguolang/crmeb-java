@@ -859,6 +859,10 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
             user = userService.registerByThird(registerThirdUserRequest);
             user.setPhone(request.getPhone());
             user.setAccount(request.getPhone());
+            // 默认未绑定，绑定逻辑在下方 checkBingSpread 成功后再写入
+            if (ObjectUtil.isNull(user.getSpreadUid())) {
+                user.setSpreadUid(0);
+            }
             if (StrUtil.isNotBlank(request.getPassword())) {
                 user.setPwd(CrmebUtil.encryptPassword(request.getPassword(), request.getPhone()));
             } else {

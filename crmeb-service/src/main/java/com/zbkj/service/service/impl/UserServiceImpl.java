@@ -1116,10 +1116,12 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      * *推广关系绑定，下级不能绑定自己的上级为下级，A->B->A(❌)
      */
     public Boolean checkBingSpread(User user, Integer spreadUid, String type) {
-        if (ObjectUtil.isNull(spreadUid)) {
+        if (ObjectUtil.isNull(user) || ObjectUtil.isNull(spreadUid)) {
             return false;
         }
-        if (spreadUid <= 0 || user.getSpreadUid() > 0) {
+        // 新用户尚未入库时 spreadUid 可能为 null，按未绑定处理
+        Integer currentSpreadUid = ObjectUtil.defaultIfNull(user.getSpreadUid(), 0);
+        if (spreadUid <= 0 || currentSpreadUid > 0) {
             return false;
         }
         if (ObjectUtil.isNotNull(user.getUid()) && user.getUid().equals(spreadUid)) {
@@ -1130,27 +1132,28 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         if (StrUtil.isBlank(isOpen) || isOpen.equals("0")) {
             return false;
         }
-        if (type.equals("old")) {
+        if ("old".equals(type)) {
             // 判断分销关系绑定类型（所有、新用户）
             String bindType = systemConfigService.getValueByKey(Constants.CONFIG_KEY_DISTRIBUTION_TYPE);
             if (StrUtil.isBlank(bindType) || bindType.equals("1")) {
                 return false;
             }
-            if (user.getSpreadUid().equals(spreadUid)) {
+            if (currentSpreadUid.equals(spreadUid)) {
                 return false;
             }
         }
         // 查询推广员
         User spreadUser = getById(spreadUid);
-        if (ObjectUtil.isNull(spreadUser) || !spreadUser.getStatus()) {
+        if (ObjectUtil.isNull(spreadUser) || !Boolean.TRUE.equals(spreadUser.getStatus())) {
             return false;
         }
         // 指定分销不是推广员不绑定
-        if (!spreadUser.getIsPromoter()) {
+        if (!Boolean.TRUE.equals(spreadUser.getIsPromoter())) {
             return false;
         }
         // 下级不能绑定自己的上级为自己的下级
-        if (ObjectUtil.isNotNull(user.getUid()) && spreadUser.getSpreadUid().equals(user.getUid())) {
+        Integer spreadParentUid = ObjectUtil.defaultIfNull(spreadUser.getSpreadUid(), 0);
+        if (ObjectUtil.isNotNull(user.getUid()) && spreadParentUid.equals(user.getUid())) {
             return false;
         }
         return true;

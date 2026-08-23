@@ -1420,6 +1420,7 @@ public class OrderServiceImpl implements OrderService {
                 detailVo.setAttrValueId(attrValue.getId());
                 detailVo.setSku(attrValue.getSuk());
                 detailVo.setPrice(attrValue.getPrice());
+                detailVo.setCost(ObjectUtil.defaultIfNull(attrValue.getCost(), BigDecimal.ZERO));
                 detailVo.setPayNum(detailRequest.getProductNum());
                 detailVo.setImage(StrUtil.isNotBlank(attrValue.getImage()) ? attrValue.getImage() : storeProduct.getImage());
                 detailVo.setVolume(attrValue.getVolume());
@@ -1530,6 +1531,7 @@ public class OrderServiceImpl implements OrderService {
             detailVo.setAttrValueId(attrValue.getId());
             detailVo.setSku(attrValue.getSuk());
             detailVo.setPrice(attrValue.getPrice());
+            detailVo.setCost(ObjectUtil.defaultIfNull(attrValue.getCost(), BigDecimal.ZERO));
             detailVo.setPayNum(storeCart.getCartNum());
             detailVo.setImage(StrUtil.isNotBlank(attrValue.getImage()) ? attrValue.getImage() : storeProduct.getImage());
             detailVo.setVolume(attrValue.getVolume());
@@ -1573,6 +1575,7 @@ public class OrderServiceImpl implements OrderService {
         detailVo.setAttrValueId(seckillAttrValue.getId());
         detailVo.setSku(seckillAttrValue.getSuk());
         detailVo.setPrice(seckillAttrValue.getPrice());
+        detailVo.setCost(ObjectUtil.defaultIfNull(seckillAttrValue.getCost(), BigDecimal.ZERO));
         detailVo.setPayNum(detailRequest.getProductNum());
         detailVo.setImage(StrUtil.isNotBlank(seckillAttrValue.getImage()) ? seckillAttrValue.getImage() : storeSeckill.getImage());
         detailVo.setVolume(seckillAttrValue.getVolume());
@@ -1681,6 +1684,7 @@ public class OrderServiceImpl implements OrderService {
         detailVo.setAttrValueId(bargainAttrValue.getId());
         detailVo.setSku(bargainAttrValue.getSuk());
         detailVo.setPrice(storeBargain.getMinPrice());
+        detailVo.setCost(ObjectUtil.defaultIfNull(bargainAttrValue.getCost(), BigDecimal.ZERO));
         detailVo.setPayNum(detailRequest.getProductNum());
         detailVo.setImage(StrUtil.isNotBlank(bargainAttrValue.getImage()) ? bargainAttrValue.getImage() : bargainAttrValue.getImage());
         detailVo.setVolume(bargainAttrValue.getVolume());
@@ -1793,6 +1797,7 @@ public class OrderServiceImpl implements OrderService {
         detailVo.setAttrValueId(combinationAttrValue.getId());
         detailVo.setSku(combinationAttrValue.getSuk());
         detailVo.setPrice(combinationAttrValue.getPrice());
+        detailVo.setCost(ObjectUtil.defaultIfNull(combinationAttrValue.getCost(), BigDecimal.ZERO));
         detailVo.setPayNum(detailRequest.getProductNum());
         detailVo.setImage(StrUtil.isNotBlank(combinationAttrValue.getImage()) ? combinationAttrValue.getImage() : combinationAttrValue.getImage());
         detailVo.setVolume(combinationAttrValue.getVolume());
@@ -1927,6 +1932,7 @@ public class OrderServiceImpl implements OrderService {
             tempDetailVo.setAttrValueId(attrValue.getId());
             tempDetailVo.setSku(attrValue.getSuk());
             tempDetailVo.setPrice(attrValue.getPrice());
+            tempDetailVo.setCost(ObjectUtil.defaultIfNull(attrValue.getCost(), BigDecimal.ZERO));
             tempDetailVo.setPayNum(detailVo.getPayNum());
             tempDetailVo.setImage(StrUtil.isNotBlank(attrValue.getImage()) ? attrValue.getImage() : storeProduct.getImage());
             tempDetailVo.setVolume(attrValue.getVolume());

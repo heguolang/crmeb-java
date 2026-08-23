@@ -331,12 +331,9 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         if (ObjectUtil.isNull(request.getIsIntegral())) {
             storeProduct.setIsIntegral(false);
         }
-        if (ObjectUtil.isNull(request.getIsBrokerage())) {
-            storeProduct.setIsBrokerage(true);
-        }
-        if (ObjectUtil.isNull(request.getIsTeamBrokerage())) {
-            storeProduct.setIsTeamBrokerage(true);
-        }
+        // 后台已隐藏开关：固定参与分销与团队奖
+        storeProduct.setIsBrokerage(true);
+        storeProduct.setIsTeamBrokerage(true);
         if (ObjectUtil.isNull(request.getFicti())) {
             storeProduct.setFicti(0);
         }
@@ -502,12 +499,9 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         if (ObjectUtil.isNull(storeProduct.getIsIntegral())) {
             storeProduct.setIsIntegral(false);
         }
-        if (ObjectUtil.isNull(storeProduct.getIsBrokerage())) {
-            storeProduct.setIsBrokerage(true);
-        }
-        if (ObjectUtil.isNull(storeProduct.getIsTeamBrokerage())) {
-            storeProduct.setIsTeamBrokerage(true);
-        }
+        // 后台已隐藏开关：固定参与分销与团队奖
+        storeProduct.setIsBrokerage(true);
+        storeProduct.setIsTeamBrokerage(true);
 
         // attr部分
         List<StoreProductAttrAddRequest> addRequestList = storeProductRequest.getAttr();

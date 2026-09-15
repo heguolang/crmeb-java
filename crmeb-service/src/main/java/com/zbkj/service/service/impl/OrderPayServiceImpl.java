@@ -286,7 +286,16 @@ public class OrderPayServiceImpl implements OrderPayService {
          */
         List<UserBrokerageRecord> recordList = assignCommission(storeOrder);
         recordList.addAll(assignSelfBrokerage(storeOrder, user, brokerageLevelId, matchedBrokerageLevel));
-        recordList.addAll(teamBrokerageService.assignTeamBrokerage(storeOrder));
+        List<UserBrokerageRecord> teamRecords = teamBrokerageService.assignTeamBrokerage(storeOrder);
+        recordList.addAll(teamRecords);
+        long teamDiffCnt = teamRecords.stream()
+                .filter(r -> BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF.equals(r.getBrokerageLevel()))
+                .count();
+        long teamPeerCnt = teamRecords.stream()
+                .filter(r -> BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER.equals(r.getBrokerageLevel()))
+                .count();
+        logger.info("[TeamBrokerage] paySuccess汇总 orderNo={}, 直推/自购后总佣金记录={}, 团队极差条数={}, 团队平级条数={}",
+                storeOrder.getOrderId(), recordList.size(), teamDiffCnt, teamPeerCnt);
 
         // 到账方式：1-支付到账，2-订单完成（收货）到账
         boolean integralOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_INTEGRAL_CREDIT_TIMING);

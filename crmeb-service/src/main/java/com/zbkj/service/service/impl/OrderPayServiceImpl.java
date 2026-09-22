@@ -517,6 +517,13 @@ public class OrderPayServiceImpl implements OrderPayService {
     public void triggerPaySuccessAfterPayment(StoreOrder storeOrder) {
         redisUtil.lPush(TaskConstants.ORDER_TASK_PAY_SUCCESS_AFTER, storeOrder.getOrderId());
         try {
+            // 关键修复：重新读取订单，确保 paid/payTime 与数据库一致。
+            // 微信回调路径只调 updatePaid 更新库，透传的内存对象 paid 仍为 false，
+            // 会导致团队奖/平级奖入口的 paid 校验静默跳过（直推奖不受影响），且队列重试被幂等日志拦截，无法自愈
+            StoreOrder latestOrder = storeOrderService.getByOderId(storeOrder.getOrderId());
+            if (ObjectUtil.isNotNull(latestOrder)) {
+                storeOrder = latestOrder;
+            }
             paySuccess(storeOrder);
         } catch (Exception e) {
             logger.error("支付成功后置处理同步执行失败，已保留队列重试，orderId={}", storeOrder.getOrderId(), e);

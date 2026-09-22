@@ -144,6 +144,13 @@ public interface UserBrokerageRecordService extends IService<UserBrokerageRecord
     PageInfo<UserBrokerageRecord> getTeamBrokerageAdminList(TeamBrokerageRecordRequest request, PageParamRequest pageParamRequest);
 
     /**
+     * 团队奖资金记录统计汇总（后台，与列表同筛选条件）
+     * @param request 筛选条件
+     * @return 合计金额、笔数、极差/平级分布、各状态笔数
+     */
+    Map<String, Object> getTeamBrokerageAdminStats(TeamBrokerageRecordRequest request);
+
+    /**
      * 团队奖资金明细（用户端，按月分组）
      * @param uid 用户uid
      * @param pageParamRequest 分页参数

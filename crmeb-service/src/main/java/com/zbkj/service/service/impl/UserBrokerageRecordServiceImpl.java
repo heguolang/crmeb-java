@@ -36,6 +36,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -439,13 +440,61 @@ public class UserBrokerageRecordServiceImpl extends ServiceImpl<UserBrokerageRec
      */
     @Override
     public PageInfo<UserBrokerageRecord> getTeamBrokerageAdminList(TeamBrokerageRecordRequest request, PageParamRequest pageParamRequest) {
+        LambdaQueryWrapper<UserBrokerageRecord> lqw = buildTeamBrokerageWrapper(request);
+        Page<UserBrokerageRecord> page = PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        return CommonPage.copyPageInfo(page, dao.selectList(lqw));
+    }
+
+    /**
+     * 团队奖资金记录统计汇总（后台）
+     */
+    @Override
+    public Map<String, Object> getTeamBrokerageAdminStats(TeamBrokerageRecordRequest request) {
+        LambdaQueryWrapper<UserBrokerageRecord> lqw = buildTeamBrokerageWrapper(request);
+        lqw.select(UserBrokerageRecord::getBrokerageLevel, UserBrokerageRecord::getPrice, UserBrokerageRecord::getStatus);
+        List<UserBrokerageRecord> list = dao.selectList(lqw);
+
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal diffAmount = BigDecimal.ZERO;
+        BigDecimal peerAmount = BigDecimal.ZERO;
+        int diffCount = 0;
+        int peerCount = 0;
+        Map<Integer, Integer> statusCount = new HashMap<>();
+        for (UserBrokerageRecord record : list) {
+            BigDecimal price = ObjectUtil.defaultIfNull(record.getPrice(), BigDecimal.ZERO);
+            totalAmount = totalAmount.add(price);
+            if (BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF.equals(record.getBrokerageLevel())) {
+                diffAmount = diffAmount.add(price);
+                diffCount++;
+            } else if (BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER.equals(record.getBrokerageLevel())) {
+                peerAmount = peerAmount.add(price);
+                peerCount++;
+            }
+            if (ObjectUtil.isNotNull(record.getStatus())) {
+                statusCount.merge(record.getStatus(), 1, Integer::sum);
+            }
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalAmount", totalAmount);
+        result.put("totalCount", list.size());
+        result.put("diffAmount", diffAmount);
+        result.put("diffCount", diffCount);
+        result.put("peerAmount", peerAmount);
+        result.put("peerCount", peerCount);
+        result.put("statusCount", statusCount);
+        return result;
+    }
+
+    /**
+     * 团队奖资金记录查询条件（列表与统计共用）
+     */
+    private LambdaQueryWrapper<UserBrokerageRecord> buildTeamBrokerageWrapper(TeamBrokerageRecordRequest request) {
         String keywords = StrUtil.trim(request.getKeywords());
         List<Integer> keywordUidList = CollUtil.newArrayList();
         if (StrUtil.isNotBlank(keywords)) {
             keywordUidList = findUidListByKeywords(keywords);
         }
 
-        Page<UserBrokerageRecord> page = PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
         LambdaQueryWrapper<UserBrokerageRecord> lqw = new LambdaQueryWrapper<>();
         lqw.eq(UserBrokerageRecord::getLinkType, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
         lqw.eq(UserBrokerageRecord::getType, BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
@@ -477,7 +526,7 @@ public class UserBrokerageRecordServiceImpl extends ServiceImpl<UserBrokerageRec
             });
         }
         lqw.orderByDesc(UserBrokerageRecord::getUpdateTime, UserBrokerageRecord::getId);
-        return CommonPage.copyPageInfo(page, dao.selectList(lqw));
+        return lqw;
     }
 
     /**

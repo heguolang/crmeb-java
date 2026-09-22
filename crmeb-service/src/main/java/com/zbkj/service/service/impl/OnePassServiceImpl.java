@@ -168,12 +168,20 @@ public class OnePassServiceImpl implements OnePassService {
      */
     @Override
     public JSONObject shipmentComs() {
-        OnePassLoginVo loginVo = onePassUtil.getLoginVo();
-        String accessToken = onePassUtil.getToken(loginVo);
-        HashMap<String, String> header = onePassUtil.getCommonHeader(accessToken);
-        JSONObject jsonObject = onePassUtil.getData(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_API_SHIPMENT_GET_KUAIDI_COMS_URI, header);
-        logger.info("一号通-商家寄件-物流地址 :{}", jsonObject);
-        return jsonObject;
+        try {
+            OnePassLoginVo loginVo = onePassUtil.getLoginVo();
+            String accessToken = onePassUtil.getToken(loginVo);
+            HashMap<String, String> header = onePassUtil.getCommonHeader(accessToken);
+            JSONObject jsonObject = onePassUtil.getData(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_API_SHIPMENT_GET_KUAIDI_COMS_URI, header);
+            logger.info("一号通-商家寄件-物流地址 :{}", jsonObject);
+            return jsonObject;
+        } catch (Exception e) {
+            // 一号通未配置或鉴权失败时降级返回空列表，避免页面加载时弹报错
+            logger.warn("一号通-商家寄件-快递列表获取失败，降级返回空列表: {}", e.getMessage());
+            JSONObject empty = new JSONObject();
+            empty.put("data", CollUtil.newArrayList());
+            return empty;
+        }
     }
 
     /**

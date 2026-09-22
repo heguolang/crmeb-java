@@ -1521,7 +1521,15 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     private Boolean bindSpread(User user, Integer spreadUid) {
 
         Boolean checkBingSpread = checkBingSpread(user, spreadUid, "old");
-        if (!checkBingSpread) return false;
+        if (!checkBingSpread) {
+            // 未通过校验时打印原因，便于排查「分享链接/推广海报点开后没有绑定上下级」
+            logger.warn(StrUtil.format("绑定推广关系未通过校验：uid={}, 待绑上级spreadUid={}, 用户当前上级={}, " +
+                            "分销开关brokerage_func_status={}, 绑定类型brokerage_bindind(0=所有用户,1=仅新用户)={}",
+                    user.getUid(), spreadUid, user.getSpreadUid(),
+                    systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_IS_OPEN),
+                    systemConfigService.getValueByKey(Constants.CONFIG_KEY_DISTRIBUTION_TYPE)));
+            return false;
+        }
 
         user.setSpreadUid(spreadUid);
         user.setSpreadTime(CrmebDateUtil.nowDateTime());

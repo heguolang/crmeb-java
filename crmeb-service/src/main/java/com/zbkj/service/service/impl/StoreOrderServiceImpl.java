@@ -634,7 +634,7 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             boolean aliOriginalRoute = storeOrder.getPayType().equals(Constants.PAY_TYPE_ALI_PAY)
                     && request.getAmount().compareTo(BigDecimal.ZERO) > 0;
             if (wechatOriginalRoute || aliOriginalRoute) {
-                String refundMark = (wechatOriginalRoute ? "微信原路退回" : "支付宝原路退回")
+                String refundMark = (wechatOriginalRoute ? "微信支付退款到余额" : "支付宝支付退款到余额")
                         + request.getAmount() + "元";
                 userBillService.saveRefundBill(storeOrder, user, request.getAmount(), refundMark);
 

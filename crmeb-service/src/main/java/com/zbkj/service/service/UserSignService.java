@@ -26,7 +26,7 @@ import java.util.List;
 public interface UserSignService extends IService<UserSign> {
 
     /**
-     * 用户积分列表
+     * 用户信用值列表
      * @param pageParamRequest 分页参数
      * @return List
      */
@@ -53,7 +53,7 @@ public interface UserSignService extends IService<UserSign> {
     List<SystemGroupDataSignConfigVo> getSignConfig();
 
     /**
-     * 积分月度列表
+     * 信用值月度列表
      * @param pageParamRequest 分页参数
      * @return List
      */

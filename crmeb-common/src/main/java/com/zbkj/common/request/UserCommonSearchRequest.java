@@ -1,6 +1,6 @@
 package com.zbkj.common.request;
 
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.zbkj.common.annotation.StringContains;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
 import java.io.Serializable;
 
 /**
- * 后台信用值查询请求对象
+ * 用户公共搜索请求对象
  * +----------------------------------------------------------------------
  * | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
  * +----------------------------------------------------------------------
@@ -22,22 +22,17 @@ import java.io.Serializable;
  * +----------------------------------------------------------------------
  */
 @Data
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
-@ApiModel(value="AdminIntegralSearchRequest对象", description="后台信用值查询请求对象")
-public class AdminIntegralSearchRequest implements Serializable {
+@ApiModel(value = "UserCommonSearchRequest", description = "用户公共搜索请求对象")
+public class UserCommonSearchRequest extends PageParamRequest implements Serializable {
 
-    private static final long serialVersionUID=1L;
+    private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty(value = "添加时间")
-    private String dateLimit;
+    @ApiModelProperty(value = "搜索类型，all-全部，uid-UID,nickname-用户昵称,phone-手机号")
+    @StringContains(limitValues = {"all", "uid", "nickname", "phone"}, message = "未知的用户搜索类型")
+    private String searchType;
 
-    @ApiModelProperty(value = "搜索关键字")
-    private String keywords;
-
-    @ApiModelProperty(value = "用户id")
-    private Integer uid;
-
-    @ApiModelProperty(value = "状态：1创建 2冻结中 3已完成 4失效，空=全部")
-    private Integer status;
+    @ApiModelProperty(value = "搜索内容")
+    private String content;
 }

@@ -52,17 +52,17 @@ CREATE TABLE IF NOT EXISTS `eb_user_warrant_record` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户权证记录表';
 
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
-SELECT 'integral_to_voucher_ratio', '100', '多少积分=1消费券（主动兑换）', 0
+SELECT 'integral_to_voucher_ratio', '100', '多少信用值=1消费券（主动兑换）', 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'integral_to_voucher_ratio');
 
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
-SELECT 'integral_daily_release_ratio', '1', '每日强制释放当前积分的百分比', 0
+SELECT 'integral_daily_release_ratio', '1', '每日强制释放当前信用值的百分比', 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'integral_daily_release_ratio');
 
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
-SELECT 'integral_daily_release_exchange_ratio', '1', '每日释放：多少积分=1消费券', 0
+SELECT 'integral_daily_release_exchange_ratio', '1', '每日释放：多少信用值=1消费券', 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'integral_daily_release_exchange_ratio');
 
@@ -77,7 +77,7 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'warrant_need_voucher');
 
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
-SELECT 'warrant_need_integral', '100', '多少积分=1权证（单独兑换）', 0
+SELECT 'warrant_need_integral', '100', '多少信用值=1权证（单独兑换）', 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'warrant_need_integral');
 
@@ -87,13 +87,13 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'voucher_warrant_switch');
 
 INSERT INTO `eb_schedule_job` (`bean_name`, `method_name`, `params`, `cron_expression`, `status`, `remark`, `is_delte`, `create_time`)
-SELECT 'IntegralDailyReleaseTask', 'dailyRelease', '', '0 0 1 * * ?', 0, '每日积分强制释放到消费券', 0, NOW()
+SELECT 'IntegralDailyReleaseTask', 'dailyRelease', '', '0 0 1 * * ?', 0, '每日信用值强制释放到消费券', 0, NOW()
 FROM DUAL
 WHERE NOT EXISTS (
     SELECT 1 FROM `eb_schedule_job` WHERE `bean_name` = 'IntegralDailyReleaseTask' AND `method_name` = 'dailyRelease'
 );
 
--- 后台菜单：挂到营销模块下（与积分菜单同级）
+-- 后台菜单：挂到营销模块下（与信用值菜单同级）
 SET @marketingMenuId := (SELECT id FROM eb_system_menu WHERE component = '/marketing' AND menu_type = 'M' LIMIT 1);
 SET @integralParentId := (SELECT pid FROM eb_system_menu WHERE component = '/marketing/integral' AND menu_type = 'M' LIMIT 1);
 SET @parentMenuId := IFNULL(@marketingMenuId, @integralParentId);

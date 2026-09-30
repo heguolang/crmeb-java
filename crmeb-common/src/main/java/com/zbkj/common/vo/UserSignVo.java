@@ -39,7 +39,7 @@ public class UserSignVo implements Serializable {
     @ApiModelProperty(value = "签到说明")
     private String title;
 
-    @ApiModelProperty(value = "获得积分")
+    @ApiModelProperty(value = "获得信用值")
     private Integer number;
 
     @ApiModelProperty(value = "签到日期")

@@ -51,7 +51,7 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_REGISTER_DEFAULT_IS_PROMOTER = "register_default_is_promoter";
     /** 用户首次注册/登录默认会员等级ID，0表示不设置 */
     public static final String CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL = "register_default_user_level";
-    /** 积分到账方式：1-支付订单到账，2-订单完成（收货）后到账 */
+    /** 信用值到账方式：1-支付订单到账，2-订单完成（收货）后到账 */
     public static final String CONFIG_KEY_INTEGRAL_CREDIT_TIMING = "integral_credit_timing";
     /** 分销佣金到账方式：1-支付订单到账，2-订单完成（收货）后到账 */
     public static final String CONFIG_KEY_BROKERAGE_CREDIT_TIMING = "brokerage_credit_timing";
@@ -125,26 +125,26 @@ public class SysConfigConstants {
     public static final String STORE_FEE_POSTAGE_SWITCH = "store_free_postage_switch";
     /** 全场满额包邮金额 */
     public static final String STORE_FEE_POSTAGE = "store_free_postage";
-    /** 积分抵用比例(1积分抵多少金额) */
+    /** 信用值抵用比例(1信用值抵多少金额) */
     public static final String CONFIG_KEY_INTEGRAL_RATE = "integral_ratio";
-    /** 下单支付金额按比例赠送积分（实际支付1元赠送多少积分) */
+    /** 下单支付金额按比例赠送信用值（实际支付1元赠送多少信用值) */
     public static final String CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE = "order_give_integral";
 
-    /** 多少积分 = 1 消费券（主动兑换） */
+    /** 多少信用值 = 1 消费券（主动兑换） */
     public static final String CONFIG_KEY_INTEGRAL_TO_VOUCHER_RATIO = "integral_to_voucher_ratio";
-    /** 每日强制释放当前积分的百分比 */
+    /** 每日强制释放当前信用值的百分比 */
     public static final String CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO = "integral_daily_release_ratio";
-    /** 每日释放：多少积分 = 1 消费券（与主动兑换比例独立） */
+    /** 每日释放：多少信用值 = 1 消费券（与主动兑换比例独立） */
     public static final String CONFIG_KEY_INTEGRAL_DAILY_RELEASE_EXCHANGE_RATIO = "integral_daily_release_exchange_ratio";
     /** 多少消费券 = 1 元余额 */
     public static final String CONFIG_KEY_VOUCHER_TO_BALANCE_RATIO = "voucher_to_balance_ratio";
     /** 兑 1 权证所需消费券 */
     public static final String CONFIG_KEY_WARRANT_NEED_VOUCHER = "warrant_need_voucher";
-    /** 兑 1 权证所需积分 */
+    /** 兑 1 权证所需信用值 */
     public static final String CONFIG_KEY_WARRANT_NEED_INTEGRAL = "warrant_need_integral";
     /** 消费券权证兑换开关：0关闭 1开启 */
     public static final String CONFIG_KEY_VOUCHER_WARRANT_SWITCH = "voucher_warrant_switch";
-    /** 积分每日释放开关：0关闭 1开启 */
+    /** 信用值每日释放开关：0关闭 1开启 */
     public static final String CONFIG_KEY_INTEGRAL_DAILY_RELEASE_SWITCH = "integral_daily_release_switch";
 
     /** 微信支付开关 */

@@ -249,7 +249,7 @@ public class WeChatPayServiceImpl implements WeChatPayService {
             if (!updatePaid) {
                 throw new CrmebException("支付成功更新订单失败");
             }
-            // 支付成功后置：同步处理经验/升级/积分/佣金，队列兜底
+            // 支付成功后置：同步处理经验/升级/信用值/佣金，队列兜底
             orderPayService.triggerPaySuccessAfterPayment(storeOrder);
             return Boolean.TRUE;
         }

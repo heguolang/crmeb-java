@@ -214,4 +214,21 @@ public class ValidateFormUtil {
             throw new CrmebException("请输入正确的手机号");
         }
     }
+
+    /**
+     * 校验用户公共搜索请求（资金监控等页面）
+     * @param request UserCommonSearchRequest 搜索请求
+     */
+    public static void validatorUserCommonSearch(com.zbkj.common.request.UserCommonSearchRequest request) {
+        if (StringUtils.isBlank(request.getContent())) {
+            return;
+        }
+        if (com.zbkj.common.constants.UserConstants.USER_SEARCH_TYPE_UID.equals(request.getSearchType())
+                || com.zbkj.common.constants.UserConstants.USER_SEARCH_TYPE_PHONE.equals(request.getSearchType())) {
+            if (!StringUtils.isNumeric(request.getContent())) {
+                throw new CrmebException(com.zbkj.common.constants.UserConstants.USER_SEARCH_TYPE_UID.equals(request.getSearchType())
+                        ? "UID必须是正整数" : "手机号必须是正整数");
+            }
+        }
+    }
 }

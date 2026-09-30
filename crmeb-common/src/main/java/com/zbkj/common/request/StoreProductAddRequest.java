@@ -91,10 +91,10 @@ public class StoreProductAddRequest implements Serializable {
     @ApiModelProperty(value = "是否优品推荐")
     private Boolean isGood;
 
-    @ApiModelProperty(value = "获得积分")
+    @ApiModelProperty(value = "获得信用值")
     private Integer giveIntegral;
 
-    @ApiModelProperty(value = "是否支持积分抵扣，默认否")
+    @ApiModelProperty(value = "是否支持信用值抵扣，默认否")
     private Boolean isIntegral;
 
     @ApiModelProperty(value = "是否单独分佣", required = true)

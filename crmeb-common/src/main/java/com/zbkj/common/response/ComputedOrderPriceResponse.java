@@ -32,7 +32,7 @@ public class ComputedOrderPriceResponse implements Serializable {
     @ApiModelProperty(value = "优惠券优惠金额")
     private BigDecimal couponFee;
 
-    @ApiModelProperty(value = "积分抵扣金额")
+    @ApiModelProperty(value = "信用值抵扣金额")
     private BigDecimal deductionPrice;
 
     @ApiModelProperty(value = "运费金额")
@@ -44,12 +44,12 @@ public class ComputedOrderPriceResponse implements Serializable {
     @ApiModelProperty(value = "商品总金额")
     private BigDecimal proTotalFee;
 
-    @ApiModelProperty(value = "剩余积分")
+    @ApiModelProperty(value = "剩余信用值")
     private Integer surplusIntegral;
 
-    @ApiModelProperty(value = "是否使用积分")
+    @ApiModelProperty(value = "是否使用信用值")
     private Boolean useIntegral;
 
-    @ApiModelProperty(value = "使用的积分")
+    @ApiModelProperty(value = "使用的信用值")
     private Integer usedIntegral;
 }

@@ -56,7 +56,7 @@ public class HomeOperatingDataResponse implements Serializable {
     @ApiModelProperty(value = "当前余额（所有用户账户合计）")
     private BigDecimal totalBalanceAmount;
 
-    @ApiModelProperty(value = "当前积分（所有用户账户合计）")
+    @ApiModelProperty(value = "当前信用值（所有用户账户合计）")
     private BigDecimal totalIntegral;
 
     @ApiModelProperty(value = "当前消费券（所有用户账户合计）")

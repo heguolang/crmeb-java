@@ -6,7 +6,7 @@ SET NAMES utf8mb4;
 INSERT INTO `eb_system_config` (`name`, `value`, `title`, `status`)
 SELECT 'integral_daily_release_switch',
        IFNULL((SELECT `value` FROM `eb_system_config` WHERE `name` = 'voucher_warrant_switch' LIMIT 1), '1'),
-       '积分每日释放开关：0=关闭，1=开启',
+       '信用值每日释放开关：0=关闭，1=开启',
        0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` WHERE `name` = 'integral_daily_release_switch');

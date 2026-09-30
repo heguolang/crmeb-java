@@ -36,7 +36,7 @@ public class VoucherWarrantController {
         return CommonResult.success(voucherWarrantService.getUserAsset());
     }
 
-    @ApiOperation(value = "积分兑换消费券")
+    @ApiOperation(value = "信用值兑换消费券")
     @RequestMapping(value = "/integral/to/voucher", method = RequestMethod.POST)
     public CommonResult<Boolean> integralToVoucher(@RequestBody @Validated IntegralToVoucherRequest request) {
         return CommonResult.success(voucherWarrantService.integralToVoucher(request));
@@ -48,7 +48,7 @@ public class VoucherWarrantController {
         return CommonResult.success(voucherWarrantService.voucherToBalance(request));
     }
 
-    @ApiOperation(value = "积分或消费券兑换权证（需一并提交地址）")
+    @ApiOperation(value = "信用值或消费券兑换权证（需一并提交地址）")
     @RequestMapping(value = "/to/warrant", method = RequestMethod.POST)
     public CommonResult<Boolean> exchangeWarrant(@RequestBody @Validated ExchangeWarrantRequest request) {
         return CommonResult.success(voucherWarrantService.exchangeWarrant(request));

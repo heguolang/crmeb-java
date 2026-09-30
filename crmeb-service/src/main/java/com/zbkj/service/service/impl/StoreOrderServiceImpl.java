@@ -157,10 +157,14 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
                 , "is_del", "combination_id", "pink_id", "seckill_id", "bargain_id", "verify_code", "remark", "paid", "is_system_del"
                 , "shipping_type", "type", "is_alter_price", "pro_total_price", "is_alter_price", "coupon_price");
         if (StrUtil.isNotBlank(request.getOrderNo())) {
-            queryWrapper.eq("order_id", request.getOrderNo());
+            queryWrapper.like("order_id", request.getOrderNo());
+        }
+        if (StrUtil.isNotBlank(request.getDeliveryId())) {
+            queryWrapper.like("delivery_id", request.getDeliveryId());
         }
         getRequestTimeWhere(queryWrapper, request);
         getStatusWhere(queryWrapper, request.getStatus());
+        getUserSearchWhere(queryWrapper, request);
         if (!request.getType().equals(2)) {
             queryWrapper.eq("type", request.getType());
         }
@@ -620,6 +624,19 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             if (storeOrder.getPayType().equals(Constants.PAY_TYPE_ALI_PAY) && request.getAmount().compareTo(BigDecimal.ZERO) == 0) {
                 //新增日志
                 userBillService.saveRefundBill(request, user);
+
+                // 退款task
+                redisUtil.lPush(Constants.ORDER_TASK_REDIS_KEY_AFTER_REFUND_BY_USER, storeOrder.getId());
+            }
+            // 微信/支付宝原路退回（金额>0）：补记资金监控账单，避免退款记录缺失
+            boolean wechatOriginalRoute = storeOrder.getPayType().equals(Constants.PAY_TYPE_WE_CHAT)
+                    && request.getAmount().compareTo(BigDecimal.ZERO) > 0;
+            boolean aliOriginalRoute = storeOrder.getPayType().equals(Constants.PAY_TYPE_ALI_PAY)
+                    && request.getAmount().compareTo(BigDecimal.ZERO) > 0;
+            if (wechatOriginalRoute || aliOriginalRoute) {
+                String refundMark = (wechatOriginalRoute ? "微信原路退回" : "支付宝原路退回")
+                        + request.getAmount() + "元";
+                userBillService.saveRefundBill(storeOrder, user, request.getAmount(), refundMark);
 
                 // 退款task
                 redisUtil.lPush(Constants.ORDER_TASK_REDIS_KEY_AFTER_REFUND_BY_USER, storeOrder.getId());
@@ -1297,31 +1314,28 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
      * @return StoreOrderCountItemResponse
      */
     @Override
-    public StoreOrderCountItemResponse getOrderStatusNum(String dateLimit, Integer type, String orderNo) {
+    public StoreOrderCountItemResponse getOrderStatusNum(StoreOrderSearchRequest request) {
         StoreOrderCountItemResponse response = new StoreOrderCountItemResponse();
-        if (type.equals(2)) {
-            type = null;
-        }
         // 全部订单
-        response.setAll(getCount(dateLimit, Constants.ORDER_STATUS_ALL, type, orderNo));
+        response.setAll(getCount(request, Constants.ORDER_STATUS_ALL));
         // 未支付订单
-        response.setUnPaid(getCount(dateLimit, Constants.ORDER_STATUS_UNPAID, type, orderNo));
+        response.setUnPaid(getCount(request, Constants.ORDER_STATUS_UNPAID));
         // 未发货订单
-        response.setNotShipped(getCount(dateLimit, Constants.ORDER_STATUS_NOT_SHIPPED, type, orderNo));
+        response.setNotShipped(getCount(request, Constants.ORDER_STATUS_NOT_SHIPPED));
         // 待收货订单
-        response.setSpike(getCount(dateLimit, Constants.ORDER_STATUS_SPIKE, type, orderNo));
+        response.setSpike(getCount(request, Constants.ORDER_STATUS_SPIKE));
         // 待评价订单
-        response.setBargain(getCount(dateLimit, Constants.ORDER_STATUS_BARGAIN, type, orderNo));
+        response.setBargain(getCount(request, Constants.ORDER_STATUS_BARGAIN));
         // 交易完成订单
-        response.setComplete(getCount(dateLimit, Constants.ORDER_STATUS_COMPLETE, type, orderNo));
+        response.setComplete(getCount(request, Constants.ORDER_STATUS_COMPLETE));
         // 待核销订单
-        response.setToBeWrittenOff(getCount(dateLimit, Constants.ORDER_STATUS_TOBE_WRITTEN_OFF, type, orderNo));
+        response.setToBeWrittenOff(getCount(request, Constants.ORDER_STATUS_TOBE_WRITTEN_OFF));
         // 退款中订单
-        response.setRefunding(getCount(dateLimit, Constants.ORDER_STATUS_REFUNDING, type, orderNo));
+        response.setRefunding(getCount(request, Constants.ORDER_STATUS_REFUNDING));
         // 已退款订单
-        response.setRefunded(getCount(dateLimit, Constants.ORDER_STATUS_REFUNDED, type, orderNo));
+        response.setRefunded(getCount(request, Constants.ORDER_STATUS_REFUNDED));
         // 已删除订单
-        response.setDeleted(getCount(dateLimit, Constants.ORDER_STATUS_DELETED, type, orderNo));
+        response.setDeleted(getCount(request, Constants.ORDER_STATUS_DELETED));
         return response;
     }
 
@@ -1428,7 +1442,7 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     @Override
     public BigDecimal getPayOrderAmountByDate(String date) {
         QueryWrapper<StoreOrder> wrapper = new QueryWrapper<>();
-        wrapper.select("IFNULL(sum(pay_price), 0) as pay_price");
+        wrapper.select("IFNULL(sum(pay_price), 0) - IFNULL(sum(refund_price), 0) as pay_price");
         wrapper.eq("paid", 1);
         wrapper.apply("date_format(create_time, '%Y-%m-%d') = {0}", date);
         StoreOrder storeOrder = dao.selectOne(wrapper);
@@ -1444,7 +1458,7 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     @Override
     public BigDecimal getPayOrderAmountByPeriod(String startDate, String endDate) {
         QueryWrapper<StoreOrder> wrapper = new QueryWrapper<>();
-        wrapper.select("IFNULL(sum(pay_price), 0) as pay_price");
+        wrapper.select("IFNULL(sum(pay_price), 0) - IFNULL(sum(refund_price), 0) as pay_price");
         wrapper.eq("paid", 1);
         wrapper.apply("date_format(create_time, '%Y-%m-%d') between {0} and {1}", startDate, endDate);
         StoreOrder storeOrder = dao.selectOne(wrapper);
@@ -1474,7 +1488,7 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     @Override
     public BigDecimal getTotalPrice() {
         QueryWrapper<StoreOrder> wrapper = new QueryWrapper<>();
-        wrapper.select("IFNULL(sum(pay_price), 0) as pay_price");
+        wrapper.select("IFNULL(sum(pay_price), 0) - IFNULL(sum(refund_price), 0) as pay_price");
         wrapper.eq("paid", 1);
         StoreOrder storeOrder = dao.selectOne(wrapper);
         return storeOrder.getPayPrice();
@@ -2159,6 +2173,64 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             queryWrapper.eq("order_id", orderNo);
         }
         return dao.selectCount(queryWrapper);
+    }
+
+    /**
+     * 获取订单总数（支持订单号/物流单号/用户搜索，与列表同一套筛选条件）
+     *
+     * @param request 订单列表搜索条件
+     * @param status  订单状态
+     * @return Integer
+     */
+    private Integer getCount(StoreOrderSearchRequest request, String status) {
+        QueryWrapper<StoreOrder> queryWrapper = new QueryWrapper<>();
+        if (StrUtil.isNotBlank(request.getDateLimit())) {
+            DateLimitUtilVo dateLimitUtilVo = CrmebDateUtil.getDateLimit(request.getDateLimit());
+            queryWrapper.between("create_time", dateLimitUtilVo.getStartTime(), dateLimitUtilVo.getEndTime());
+        }
+        getStatusWhereNew(queryWrapper, status);
+        if (ObjectUtil.isNotNull(request.getType()) && !request.getType().equals(2)) {
+            queryWrapper.eq("type", request.getType());
+        }
+        if (StrUtil.isNotBlank(request.getOrderNo())) {
+            queryWrapper.like("order_id", request.getOrderNo());
+        }
+        if (StrUtil.isNotBlank(request.getDeliveryId())) {
+            queryWrapper.like("delivery_id", request.getDeliveryId());
+        }
+        getUserSearchWhere(queryWrapper, request);
+        return dao.selectCount(queryWrapper);
+    }
+
+    /**
+     * 用户搜索条件（全部/UID/昵称/手机号），下单人命中即算
+     *
+     * @param queryWrapper 查询条件
+     * @param request      用户搜索请求
+     */
+    private void getUserSearchWhere(QueryWrapper<StoreOrder> queryWrapper, UserCommonSearchRequest request) {
+        if (StrUtil.isBlank(request.getContent())) {
+            return;
+        }
+        ValidateFormUtil.validatorUserCommonSearch(request);
+        String keywords = request.getContent().trim();
+        String searchType = StrUtil.blankToDefault(request.getSearchType(), UserConstants.USER_SEARCH_TYPE_ALL);
+        switch (searchType) {
+            case UserConstants.USER_SEARCH_TYPE_UID:
+                queryWrapper.eq("uid", keywords);
+                break;
+            case UserConstants.USER_SEARCH_TYPE_NICKNAME:
+                queryWrapper.apply("uid in (select uid from eb_user where nickname like concat('%', {0}, '%'))", keywords);
+                break;
+            case UserConstants.USER_SEARCH_TYPE_PHONE:
+                queryWrapper.apply("uid in (select uid from eb_user where phone like concat('%', {0}, '%'))", keywords);
+                break;
+            default:
+                // 全部：昵称 / 手机号 / 账号 任一命中
+                queryWrapper.apply("uid in (select uid from eb_user where nickname like concat('%', {0}, '%')"
+                        + " or phone like concat('%', {0}, '%') or account like concat('%', {0}, '%'))", keywords);
+                break;
+        }
     }
 
     /**

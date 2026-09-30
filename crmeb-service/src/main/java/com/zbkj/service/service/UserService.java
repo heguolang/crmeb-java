@@ -34,7 +34,7 @@ public interface UserService extends IService<User> {
     PageInfo<UserResponse> getList(UserSearchRequest request, PageParamRequest pageParamRequest);
 
     /**
-     * 操作积分、余额
+     * 操作信用值、余额
      */
     Boolean updateIntegralMoney(UserOperateIntegralMoneyRequest request);
 
@@ -68,7 +68,7 @@ public interface UserService extends IService<User> {
     /**
      * 根据参数类型查询会员对应的信息
      * @param userId Integer 会员id
-     * @param type int 类型 0=消费记录，1=积分明细，2=签到记录，3=持有优惠券，4=余额变动，5=好友关系
+     * @param type int 类型 0=消费记录，1=信用值明细，2=签到记录，3=持有优惠券，4=余额变动，5=好友关系
      * @param pageParamRequest PageParamRequest 分页
      */
     Object getInfoByCondition(Integer userId,Integer type,PageParamRequest pageParamRequest);
@@ -157,9 +157,9 @@ public interface UserService extends IService<User> {
     Boolean editSpread(UserUpdateSpreadRequest request);
 
     /**
-     * 更新用户积分
+     * 更新用户信用值
      * @param user 用户
-     * @param integral 积分
+     * @param integral 信用值
      * @param type 增加add、扣减sub
      * @return 更新后的用户对象
      */
@@ -221,10 +221,10 @@ public interface UserService extends IService<User> {
     Boolean operationNowMoney(Integer uid, BigDecimal price, BigDecimal nowMoney, String type);
 
     /**
-     * 添加/扣减积分
+     * 添加/扣减信用值
      * @param uid 用户id
-     * @param integral 积分
-     * @param nowIntegral 历史积分
+     * @param integral 信用值
+     * @param nowIntegral 历史信用值
      * @param type 类型：add—添加，sub—扣减
      */
     Boolean operationIntegral(Integer uid, BigDecimal integral, BigDecimal nowIntegral, String type);
@@ -317,7 +317,7 @@ public interface UserService extends IService<User> {
     Integer getTotalNum();
 
     /**
-     * 获取所有用户账户资产汇总（余额、佣金、积分、消费券、MLSS）
+     * 获取所有用户账户资产汇总（余额、佣金、信用值、消费券、MLSS）
      * @return User 汇总字段：nowMoney、brokeragePrice、integral、consumeVoucher、warrant
      */
     User getTotalAsset();

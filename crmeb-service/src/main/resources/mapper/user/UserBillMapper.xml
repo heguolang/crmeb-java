@@ -29,20 +29,246 @@
     </select>
 
     <select id="fundMonitoring" resultType="com.zbkj.common.response.UserBillResponse" parameterType="map">
-        SELECT ub.id,ub.link_id AS linkId,ub.pm,ub.title,ub.category,ub.type,ub.number,ub.balance,ub.mark,ub.status,ub.create_time AS createTime,ub.update_time AS updateTime,u.nickname,ub.uid FROM eb_user_bill ub
+        SELECT ub.id,ub.link_id AS linkId,ub.pm,ub.title,ub.category,ub.type,ub.number,ub.balance,ub.mark,ub.status,
+               ub.create_time AS createTime,ub.update_time AS updateTime,u.nickname,ub.uid,u.phone,u.avatar
+        FROM eb_user_bill ub
         LEFT JOIN eb_user u ON ub.uid = u.uid
-        where ub.category = 'now_money'
-        <if test="keywords != '' and keywords != null ">
-            and ( ub.uid like #{keywords} or u.nickname like #{keywords, jdbcType=VARCHAR})
+        where ub.category IN ('now_money','brokerage_price')
+        <if test="category != '' and category != null">
+            and ub.category = #{category, jdbcType=VARCHAR}
         </if>
         <if test="title != '' and title != null">
             and ub.title = #{title, jdbcType=VARCHAR}
         </if>
+        <if test="titleList != null">
+            and ub.title in
+            <foreach collection="titleList" item="tItem" open="(" separator="," close=")">#{tItem}</foreach>
+        </if>
+        <if test="titleLikeList != null">
+            and (
+            <foreach collection="titleLikeList" item="tItem" separator=" or ">
+                ub.title like CONCAT('%',#{tItem},'%')
+            </foreach>
+            )
+        </if>
         <if test="startTime != '' and endTime != '' and startTime != null and endTime != null">
             and (ub.create_time between #{startTime} and #{endTime})
         </if>
+        <if test="keywords != '' and keywords != null ">
+            and (
+            ub.uid like CONCAT('%',#{keywords},'%') or
+            u.nickname like CONCAT('%',#{keywords},'%') or
+            u.phone like CONCAT('%',#{keywords},'%')
+            )
+        </if>
+        <if test="uid != null ">
+            and ub.uid = #{uid}
+        </if>
+        <if test="nickname != '' and nickname != null ">
+            and u.nickname like CONCAT('%',#{nickname},'%')
+        </if>
+        <if test="phone != '' and phone != null ">
+            and u.phone like CONCAT('%',#{phone},'%')
+        </if>
+        <if test="linkId != '' and linkId != null ">
+            and (
+                ub.link_id like CONCAT('%',#{linkId},'%')
+                or exists (
+                    select 1 from eb_store_order so
+                    where so.order_id like CONCAT('%',#{linkId},'%')
+                      and (ub.link_id = so.order_id or ub.link_id = CONVERT(so.id, CHAR) COLLATE utf8mb4_general_ci)
+                )
+            )
+        </if>
 
         ORDER BY ub.id DESC,ub.create_time DESC
+    </select>
+
+    <!-- 不限（全部）：UNION 三表，余额 + 信用值 + 佣金 -->
+    <select id="fundMonitoringAll" resultType="com.zbkj.common.response.UserBillResponse" parameterType="map">
+        SELECT t.* FROM (
+            SELECT ub.id, ub.link_id AS linkId, ub.pm, ub.title, ub.category, ub.type,
+                   ub.number, ub.balance, ub.mark, ub.status,
+                   ub.create_time AS createTime, ub.update_time AS updateTime,
+                   u.nickname, ub.uid, u.phone, u.avatar, 'bill' AS sourceTable
+            FROM eb_user_bill ub
+            LEFT JOIN eb_user u ON ub.uid = u.uid
+            WHERE ub.category IN ('now_money','brokerage_price')
+            UNION ALL
+            SELECT ir.id, ir.link_id AS linkId,
+                   (CASE WHEN ir.type = 1 THEN 1 WHEN ir.type = 2 THEN 0 ELSE ir.type END) AS pm,
+                   ir.title, 'integral' AS category, ir.link_type AS type,
+                   ir.integral AS number, ir.balance, ir.mark, ir.status,
+                   ir.create_time AS createTime, ir.update_time AS updateTime,
+                   u.nickname, ir.uid, u.phone, u.avatar, 'integral' AS sourceTable
+            FROM eb_user_integral_record ir
+            LEFT JOIN eb_user u ON ir.uid = u.uid
+            UNION ALL
+            SELECT br.id, br.link_id AS linkId,
+                   (CASE WHEN br.type = 1 THEN 1 WHEN br.type = 2 THEN 0 ELSE br.type END) AS pm,
+                   br.title, 'brokerage_price' AS category, br.link_type AS type,
+                   br.price AS number, br.balance, br.mark, br.status,
+                   br.create_time AS createTime, br.update_time AS updateTime,
+                   u.nickname, br.uid, u.phone, u.avatar, 'brokerage' AS sourceTable
+            FROM eb_user_brokerage_record br
+            LEFT JOIN eb_user u ON br.uid = u.uid
+        ) t
+        where 1 = 1
+        <if test="titleList != null">
+            and t.title in
+            <foreach collection="titleList" item="tItem" open="(" separator="," close=")">#{tItem}</foreach>
+        </if>
+        <if test="titleLikeList != null">
+            and (
+            <foreach collection="titleLikeList" item="tItem" separator=" or ">
+                t.title like CONCAT('%',#{tItem},'%')
+            </foreach>
+            )
+        </if>
+        <if test="startTime != '' and endTime != '' and startTime != null and endTime != null">
+            and (t.createTime between #{startTime} and #{endTime})
+        </if>
+        <if test="keywords != '' and keywords != null ">
+            and (
+            t.uid like CONCAT('%',#{keywords},'%') or
+            t.nickname like CONCAT('%',#{keywords},'%') or
+            t.phone like CONCAT('%',#{keywords},'%')
+            )
+        </if>
+        <if test="uid != null ">
+            and t.uid = #{uid}
+        </if>
+        <if test="nickname != '' and nickname != null ">
+            and t.nickname like CONCAT('%',#{nickname},'%')
+        </if>
+        <if test="phone != '' and phone != null ">
+            and t.phone like CONCAT('%',#{phone},'%')
+        </if>
+        <if test="linkId != '' and linkId != null ">
+            and (
+                t.linkId like CONCAT('%',#{linkId},'%')
+                or exists (
+                    select 1 from eb_store_order so
+                    where so.order_id like CONCAT('%',#{linkId},'%')
+                      and (t.linkId = so.order_id or t.linkId = CONVERT(so.id, CHAR) COLLATE utf8mb4_general_ci)
+                )
+            )
+        </if>
+        ORDER BY t.createTime DESC, t.id DESC
+    </select>
+
+    <!-- 信用值账户 -->
+    <select id="fundMonitoringIntegral" resultType="com.zbkj.common.response.UserBillResponse" parameterType="map">
+        SELECT ir.id,ir.link_id AS linkId,(CASE WHEN ir.type = 1 THEN 1 WHEN ir.type = 2 THEN 0 ELSE ir.type END) AS pm,ir.title,
+               'integral' AS category,ir.link_type AS type,ir.integral AS number,ir.balance,ir.mark,ir.status,
+               ir.create_time AS createTime,ir.update_time AS updateTime,u.nickname,ir.uid,u.phone,u.avatar
+        FROM eb_user_integral_record ir
+        LEFT JOIN eb_user u ON ir.uid = u.uid
+        where 1 = 1
+        <if test="titleList != null">
+            and ir.title in
+            <foreach collection="titleList" item="tItem" open="(" separator="," close=")">#{tItem}</foreach>
+        </if>
+        <if test="titleLikeList != null">
+            and (
+            <foreach collection="titleLikeList" item="tItem" separator=" or ">
+                ir.title like CONCAT('%',#{tItem},'%')
+            </foreach>
+            )
+        </if>
+        <if test="startTime != '' and endTime != '' and startTime != null and endTime != null">
+            and (ir.create_time between #{startTime} and #{endTime})
+        </if>
+        <if test="keywords != '' and keywords != null ">
+            and (
+            ir.uid like CONCAT('%',#{keywords},'%') or
+            u.nickname like CONCAT('%',#{keywords},'%') or
+            u.phone like CONCAT('%',#{keywords},'%')
+            )
+        </if>
+        <if test="uid != null ">
+            and ir.uid = #{uid}
+        </if>
+        <if test="nickname != '' and nickname != null ">
+            and u.nickname like CONCAT('%',#{nickname},'%')
+        </if>
+        <if test="phone != '' and phone != null ">
+            and u.phone like CONCAT('%',#{phone},'%')
+        </if>
+        <if test="linkId != '' and linkId != null ">
+            and (
+                ir.link_id like CONCAT('%',#{linkId},'%')
+                or exists (
+                    select 1 from eb_store_order so
+                    where so.order_id like CONCAT('%',#{linkId},'%')
+                      and (ir.link_id = so.order_id or ir.link_id = CONVERT(so.id, CHAR) COLLATE utf8mb4_general_ci)
+                )
+            )
+        </if>
+
+        ORDER BY ir.id DESC,ir.create_time DESC
+    </select>
+
+    <!-- 佣金账户：佣金记录表 UNION 余额账单表里的佣金类账单 -->
+    <select id="fundMonitoringBrokerage" resultType="com.zbkj.common.response.UserBillResponse" parameterType="map">
+        SELECT t.* FROM (
+            SELECT br.id, br.link_id AS linkId,
+                   (CASE WHEN br.type = 1 THEN 1 WHEN br.type = 2 THEN 0 ELSE br.type END) AS pm,
+                   br.title, 'brokerage_price' AS category, br.link_type AS type, br.price AS number, br.balance,
+                   br.mark, br.status, br.create_time AS createTime, br.update_time AS updateTime,
+                   u.nickname, br.uid, u.phone, u.avatar, 'brokerage' AS sourceTable
+            FROM eb_user_brokerage_record br
+            LEFT JOIN eb_user u ON br.uid = u.uid
+            UNION ALL
+            SELECT ub.id, ub.link_id AS linkId, ub.pm, ub.title, 'brokerage_price' AS category, ub.type,
+                   ub.number, ub.balance, ub.mark, ub.status, ub.create_time AS createTime, ub.update_time AS updateTime,
+                   u.nickname, ub.uid, u.phone, u.avatar, 'bill' AS sourceTable
+            FROM eb_user_bill ub
+            LEFT JOIN eb_user u ON ub.uid = u.uid
+            WHERE ub.category = 'brokerage_price'
+        ) t
+        where 1 = 1
+        <if test="titleList != null">
+            and t.title in
+            <foreach collection="titleList" item="tItem" open="(" separator="," close=")">#{tItem}</foreach>
+        </if>
+        <if test="titleLikeList != null">
+            and (
+            <foreach collection="titleLikeList" item="tItem" separator=" or ">
+                t.title like CONCAT('%',#{tItem},'%')
+            </foreach>
+            )
+        </if>
+        <if test="startTime != '' and endTime != '' and startTime != null and endTime != null">
+            and (t.createTime between #{startTime} and #{endTime})
+        </if>
+        <if test="keywords != '' and keywords != null ">
+            and (
+            t.uid like CONCAT('%',#{keywords},'%') or
+            t.nickname like CONCAT('%',#{keywords},'%') or
+            t.phone like CONCAT('%',#{keywords},'%')
+            )
+        </if>
+        <if test="uid != null ">
+            and t.uid = #{uid}
+        </if>
+        <if test="nickname != '' and nickname != null ">
+            and t.nickname like CONCAT('%',#{nickname},'%')
+        </if>
+        <if test="phone != '' and phone != null ">
+            and t.phone like CONCAT('%',#{phone},'%')
+        </if>
+        <if test="linkId != '' and linkId != null ">
+            and (
+                t.linkId like CONCAT('%',#{linkId},'%')
+                or exists (
+                    select 1 from eb_store_order so
+                    where so.order_id like CONCAT('%',#{linkId},'%')
+                      and (t.linkId = so.order_id or t.linkId = CONVERT(so.id, CHAR) COLLATE utf8mb4_general_ci)
+                )
+            )
+        </if>
+        ORDER BY t.createTime DESC, t.id DESC
     </select>
 
 </mapper>

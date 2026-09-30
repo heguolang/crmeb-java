@@ -47,14 +47,23 @@ public class FundsMonitorController {
     /**
      * 分页显示资金监控
      * @param request 搜索条件
-     * @param pageParamRequest 分页参数
      */
     @PreAuthorize("hasAuthority('admin:finance:monitor:list')")
-    @ApiOperation(value = "资金监控")
+    @ApiOperation(value = "资金监控（余额/佣金/信用值/全部四类）")
     @RequestMapping(value = "/list", method = RequestMethod.GET)
-    public CommonResult<CommonPage<MonitorResponse>> getList(@Validated FundsMonitorRequest request, @Validated PageParamRequest pageParamRequest){
-        CommonPage<MonitorResponse> userExtractCommonPage = CommonPage.restPage(userBillService.fundMonitoring(request, pageParamRequest));
-        return CommonResult.success(userExtractCommonPage);
+    public CommonResult<CommonPage<MonitorResponse>> getList(@Validated FundsMonitorRequest request){
+        // 账户类型路由：integral 走信用值表，brokerage_price 走佣金记录 union，now_money 走 bill，all 走三表 union
+        CommonPage<MonitorResponse> page;
+        if ("integral".equals(request.getCategory())) {
+            page = CommonPage.restPage(userBillService.fundMonitoringIntegral(request));
+        } else if ("brokerage_price".equals(request.getCategory())) {
+            page = CommonPage.restPage(userBillService.fundMonitoringBrokerage(request));
+        } else if ("now_money".equals(request.getCategory())) {
+            page = CommonPage.restPage(userBillService.fundMonitoring(request));
+        } else {
+            page = CommonPage.restPage(userBillService.fundMonitoringAll(request));
+        }
+        return CommonResult.success(page);
     }
 
     /**

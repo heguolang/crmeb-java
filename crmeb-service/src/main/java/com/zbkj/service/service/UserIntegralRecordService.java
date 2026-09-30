@@ -10,7 +10,7 @@ import com.zbkj.common.model.user.UserIntegralRecord;
 import java.util.List;
 
 /**
- * 用户积分记录Service
+ * 用户信用值记录Service
  * +----------------------------------------------------------------------
  * | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
  * +----------------------------------------------------------------------
@@ -32,7 +32,7 @@ public interface UserIntegralRecordService extends IService<UserIntegralRecord> 
     List<UserIntegralRecord> findListByOrderIdAndUid(String orderNo, Integer uid);
 
     /**
-     * 积分解冻
+     * 信用值解冻
      */
     void integralThaw();
 
@@ -45,17 +45,17 @@ public interface UserIntegralRecordService extends IService<UserIntegralRecord> 
     PageInfo<UserIntegralRecordResponse> findAdminList(AdminIntegralSearchRequest request, PageParamRequest pageParamRequest);
 
     /**
-     * 根据类型条件计算积分总数
+     * 根据类型条件计算信用值总数
      * @param uid 用户uid
      * @param type 类型：1-增加，2-扣减
      * @param date 日期
      * @param linkType 关联类型
-     * @return 积分总数
+     * @return 信用值总数
      */
     java.math.BigDecimal getSumIntegral(Integer uid, Integer type, String date, List<String> linkTypeList);
 
     /**
-     * H5用户积分列表
+     * H5用户信用值列表
      * @param uid 用户uid
      * @param pageParamRequest 分页参数
      * @return List
@@ -63,9 +63,9 @@ public interface UserIntegralRecordService extends IService<UserIntegralRecord> 
     List<UserIntegralRecord> findUserIntegralRecordList(Integer uid, PageParamRequest pageParamRequest);
 
     /**
-     * 获取用户冻结的积分
+     * 获取用户冻结的信用值
      * @param uid 用户uid
-     * @return 积分数量
+     * @return 信用值数量
      */
     java.math.BigDecimal getFrozenIntegralByUid(Integer uid);
 }

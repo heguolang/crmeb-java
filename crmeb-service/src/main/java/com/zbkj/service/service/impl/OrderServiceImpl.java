@@ -1009,12 +1009,12 @@ public class OrderServiceImpl implements OrderService {
         // 生成订单号
         String orderNo = CrmebUtil.getOrderNo("order");
 
-        // 购买赠送的积分：商品配置优先；商品积分为0时再用默认下单赠送比例
+        // 购买赠送的信用值：商品配置优先；商品信用值为0时再用默认下单赠送比例
         int gainIntegral = 0;
         int productGainIntegral = 0;
         List<StoreOrderInfo> storeOrderInfos = new ArrayList<>();
         for (OrderInfoDetailVo detailVo : orderInfoVo.getOrderDetailList()) {
-            // 商品赠送积分
+            // 商品赠送信用值
             if (ObjectUtil.isNotNull(detailVo.getGiveIntegral()) && detailVo.getGiveIntegral() > 0) {
                 productGainIntegral += detailVo.getGiveIntegral() * detailVo.getPayNum();
             }
@@ -1050,10 +1050,10 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if (productGainIntegral > 0) {
-            // 商品配置有积分：只用商品积分
+            // 商品配置有信用值：只用商品信用值
             gainIntegral = productGainIntegral;
         } else if (computedOrderPriceResponse.getPayFee().compareTo(BigDecimal.ZERO) > 0) {
-            // 商品积分为0：走默认「下单赠送积分比例」
+            // 商品信用值为0：走默认「下单赠送信用值比例」
             String integralStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE);
             if (StrUtil.isNotBlank(integralStr)) {
                 BigDecimal integralBig = new BigDecimal(integralStr);
@@ -1064,7 +1064,7 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // 会员等级赠送积分
+        // 会员等级赠送信用值
         gainIntegral += userLevelService.getProjectedGiveIntegral(user, computedOrderPriceResponse.getPayFee());
 
         StoreOrder storeOrder = new StoreOrder();
@@ -1447,7 +1447,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 订单内全部商品均开启「支持积分抵扣」时才允许使用积分抵扣
+     * 订单内全部商品均开启「支持信用值抵扣」时才允许使用信用值抵扣
      */
     private void fillCanUseIntegral(OrderInfoVo orderInfoVo) {
         List<OrderInfoDetailVo> detailVoList = orderInfoVo.getOrderDetailList();
@@ -1455,7 +1455,7 @@ public class OrderServiceImpl implements OrderService {
             orderInfoVo.setCanUseIntegral(false);
             return;
         }
-        // 营销活动订单前端本身不展示积分抵扣
+        // 营销活动订单前端本身不展示信用值抵扣
         if (ObjectUtil.defaultIfNull(orderInfoVo.getSeckillId(), 0) > 0
                 || ObjectUtil.defaultIfNull(orderInfoVo.getBargainId(), 0) > 0
                 || ObjectUtil.defaultIfNull(orderInfoVo.getCombinationId(), 0) > 0
@@ -2269,7 +2269,7 @@ public class OrderServiceImpl implements OrderService {
                 }
             }
         }
-        // 积分部分
+        // 信用值部分
         BigDecimal payPrice = orderInfoVo.getProTotalFee().subtract(priceResponse.getCouponFee());
         priceResponse.setUseIntegral(request.getUseIntegral());
         priceResponse.setProTotalFee(orderInfoVo.getProTotalFee());
@@ -2277,7 +2277,7 @@ public class OrderServiceImpl implements OrderService {
         int usableIntegral = userIntegral.setScale(0, RoundingMode.DOWN).intValue();
         boolean wantUseIntegral = Boolean.TRUE.equals(request.getUseIntegral())
                 && Boolean.TRUE.equals(orderInfoVo.getCanUseIntegral());
-        if (!wantUseIntegral || usableIntegral <= 0) {// 不使用积分
+        if (!wantUseIntegral || usableIntegral <= 0) {// 不使用信用值
             priceResponse.setDeductionPrice(BigDecimal.ZERO);
             priceResponse.setSurplusIntegral(usableIntegral);
             priceResponse.setPayFee(payPrice.add(priceResponse.getFreightFee()));
@@ -2285,12 +2285,12 @@ public class OrderServiceImpl implements OrderService {
             priceResponse.setUseIntegral(false);
             return priceResponse;
         }
-        // 使用积分
-        // 查询积分使用比例
+        // 使用信用值
+        // 查询信用值使用比例
         String integralRatio = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_INTEGRAL_RATE);
         BigDecimal deductionPrice = BigDecimal.valueOf(usableIntegral).multiply(new BigDecimal(integralRatio));
         if (wantUseIntegral) {
-            // 积分兑换金额小于实际支付金额
+            // 信用值兑换金额小于实际支付金额
             if (deductionPrice.compareTo(payPrice) < 0) {
                 payPrice = payPrice.subtract(deductionPrice);
                 priceResponse.setSurplusIntegral(0);

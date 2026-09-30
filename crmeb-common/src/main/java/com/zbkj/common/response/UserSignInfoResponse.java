@@ -41,7 +41,7 @@ public class UserSignInfoResponse implements Serializable {
     @ApiModelProperty(value = "昨天是否签到")
     private Boolean isYesterdaySign;
 
-    @ApiModelProperty(value = "用户积分")
+    @ApiModelProperty(value = "用户信用值")
     private BigDecimal integral;
 
 }

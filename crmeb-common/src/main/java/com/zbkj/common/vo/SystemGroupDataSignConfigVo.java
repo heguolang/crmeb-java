@@ -39,7 +39,7 @@ public class SystemGroupDataSignConfigVo implements Serializable {
     private Integer day;
 
 
-    @ApiModelProperty(value = "积分")
+    @ApiModelProperty(value = "信用值")
     private Integer integral;
 
     @ApiModelProperty(value = "经验")

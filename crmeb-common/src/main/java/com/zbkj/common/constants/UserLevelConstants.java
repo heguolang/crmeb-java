@@ -37,7 +37,7 @@ public class UserLevelConstants {
     /** 升级条件：累计消费金额 + 累计订单数（同时满足） */
     public static final Integer UPGRADE_TYPE_BOTH = 3;
 
-    /** 默认等级赠送积分 */
+    /** 默认等级赠送信用值 */
     public static final Integer DEFAULT_GIVE_INTEGRAL = 0;
 
     /** 消费金额统计时机：已付款 */

@@ -34,7 +34,7 @@ public class UserWarrantExchange implements Serializable {
     @ApiModelProperty(value = "支付方式：integral/voucher")
     private String payType;
 
-    @ApiModelProperty(value = "实际消耗积分或消费券")
+    @ApiModelProperty(value = "实际消耗信用值或消费券")
     private BigDecimal payAmount;
 
     @ApiModelProperty(value = "兑换权证数量")

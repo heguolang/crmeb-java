@@ -54,7 +54,7 @@ public class CreateOrderRequest implements Serializable {
 //        @NotBlank(message = "支付渠道不能为空")
 //        private String payChannel;
 
-    @ApiModelProperty(value = "是否使用积分")
+    @ApiModelProperty(value = "是否使用信用值")
     @NotNull(message = "是否使用信用值不能为空")
     private Boolean useIntegral;
 

@@ -61,13 +61,10 @@ public class StoreOrderController {
      * 获取订单各状态数量
      */
     @PreAuthorize("hasAuthority('admin:order:status:num')")
-    @ApiOperation(value = "获取订单各状态数量")
+    @ApiOperation(value = "获取订单各状态数量") //配合swagger使用
     @RequestMapping(value = "/status/num", method = RequestMethod.GET)
-    public CommonResult<StoreOrderCountItemResponse> getOrderStatusNum(
-            @RequestParam(value = "dateLimit", defaultValue = "") String dateLimit,
-            @RequestParam(value = "type", defaultValue = "2") @Range(min = 0, max = 2, message = "未知的订单类型") Integer type,
-            @RequestParam(value = "orderId", defaultValue = "") String orderNo) {
-        return CommonResult.success(storeOrderService.getOrderStatusNum(dateLimit, type, orderNo));
+    public CommonResult<StoreOrderCountItemResponse> getOrderStatusNum(@Validated StoreOrderSearchRequest request) {
+        return CommonResult.success(storeOrderService.getOrderStatusNum(request));
     }
 
     /**

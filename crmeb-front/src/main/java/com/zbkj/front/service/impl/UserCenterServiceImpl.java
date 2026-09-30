@@ -948,7 +948,7 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
     }
 
     /**
-     * 用户积分记录列表
+     * 用户信用值记录列表
      *
      * @param pageParamRequest 分页参数
      * @return List<UserIntegralRecord>
@@ -1024,7 +1024,7 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
     }
 
     /**
-     * 获取用户积分信息
+     * 获取用户信用值信息
      *
      * @return IntegralUserResponse
      */
@@ -1041,7 +1041,7 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         BigDecimal deductionIntegral = userIntegralRecordService.getSumIntegral(user.getUid(), IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB, "", linkTypeList);
         userSignInfoResponse.setSumIntegral(sumIntegral);
         userSignInfoResponse.setDeductionIntegral(deductionIntegral);
-        // 冻结积分
+        // 冻结信用值
         BigDecimal frozenIntegral = userIntegralRecordService.getFrozenIntegralByUid(user.getUid());
         userSignInfoResponse.setFrozenIntegral(frozenIntegral);
         userSignInfoResponse.setIntegral(user.getIntegral());

@@ -209,7 +209,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
         if (useIntegral <= 0) {
             throw new CrmebException("请输入有效信用值");
         }
-        // 按比例精确兑换，支持到 0.001：如 1000 积分 = 1 权证，则 1 积分 = 0.001 权证
+        // 按比例精确兑换，支持到 0.001：如 1000 信用值 = 1 权证，则 1 信用值 = 0.001 权证
         BigDecimal warrantAmount = BigDecimal.valueOf(useIntegral)
                 .divide(BigDecimal.valueOf(ratio), 3, RoundingMode.DOWN);
         if (warrantAmount.compareTo(new BigDecimal("0.001")) < 0) {
@@ -408,7 +408,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
     @Override
     public void dailyReleaseIntegralToVoucher() {
         if (!isReleaseSwitchOn()) {
-            logger.info("积分释放开关已关闭，跳过每日释放");
+            logger.info("信用值释放开关已关闭，跳过每日释放");
             return;
         }
         BigDecimal releasePercent = getDecimalConfig(SysConfigConstants.CONFIG_KEY_INTEGRAL_DAILY_RELEASE_RATIO, "1");
@@ -437,14 +437,14 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
                         continue;
                     }
                     BigDecimal currentIntegral = nullToZero(user.getIntegral());
-                    // 释放积分 = 当前积分 × 日释放百分比 ÷ 100
+                    // 释放信用值 = 当前信用值 × 日释放百分比 ÷ 100
                     BigDecimal releaseIntegral = currentIntegral
                             .multiply(releasePercent)
                             .divide(BigDecimal.valueOf(100), 2, RoundingMode.DOWN);
                     if (releaseIntegral.compareTo(minRelease) < 0) {
                         continue;
                     }
-                    // 消费券 = 释放积分 ÷ 释放兑换比例（独立于主动兑换比例）
+                    // 消费券 = 释放信用值 ÷ 释放兑换比例（独立于主动兑换比例）
                     BigDecimal voucherAmount = releaseIntegral.divide(exchangeRatio, 2, RoundingMode.DOWN);
                     if (voucherAmount.compareTo(BigDecimal.ZERO) <= 0) {
                         continue;
@@ -463,7 +463,7 @@ public class VoucherWarrantServiceImpl implements VoucherWarrantService {
                             StrUtil.format("每日释放比例{}%，释放兑换{}信用值=1CCEA，释放信用值{}",
                                     releasePercent, exchangeRatio, releaseIntegral));
                 } catch (Exception ex) {
-                    logger.error("每日积分释放失败 uid={}", user.getUid(), ex);
+                    logger.error("每日信用值释放失败 uid={}", user.getUid(), ex);
                 }
             }
             if (userList.size() < pageSize) {

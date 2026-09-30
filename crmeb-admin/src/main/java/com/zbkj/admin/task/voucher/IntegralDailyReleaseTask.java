@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * 每日积分强制释放到消费券
+ * 每日信用值强制释放到消费券
  */
 @Component("IntegralDailyReleaseTask")
 public class IntegralDailyReleaseTask {

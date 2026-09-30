@@ -79,7 +79,7 @@ public class StoreOrderInfo implements Serializable {
     @ApiModelProperty(value = "体积")
     private BigDecimal volume;
 
-    @ApiModelProperty(value = "获得积分")
+    @ApiModelProperty(value = "获得信用值")
     private Integer giveIntegral;
 
     @ApiModelProperty(value = "是否评价")

@@ -11,17 +11,17 @@ import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 /**
- * 积分兑换消费券请求
+ * 信用值兑换消费券请求
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@ApiModel(value = "IntegralToVoucherRequest", description = "积分兑换消费券")
+@ApiModel(value = "IntegralToVoucherRequest", description = "信用值兑换消费券")
 public class IntegralToVoucherRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty(value = "用于兑换的积分数", required = true)
+    @ApiModelProperty(value = "用于兑换的信用值数", required = true)
     @NotNull(message = "信用值不能为空")
     @Min(value = 1, message = "信用值至少为1")
     private Integer integral;

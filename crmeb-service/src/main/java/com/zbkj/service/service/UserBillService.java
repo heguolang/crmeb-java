@@ -9,6 +9,7 @@ import com.zbkj.common.response.MonitorResponse;
 import com.zbkj.common.request.StoreOrderRefundRequest;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserBill;
+import com.zbkj.common.model.order.StoreOrder;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -56,13 +57,47 @@ public interface UserBillService extends IService<UserBill> {
     Boolean saveRefundBill(StoreOrderRefundRequest request, User user);
 
     /**
-     * 资金监控
+     * 保存退款日志（指定备注，用于微信/支付宝原路退回）
      *
-     * @param request          查询参数
-     * @param pageParamRequest 分页参数
+     * @param order 订单
+     * @param user  用户
+     * @param amount 退款金额
+     * @param mark  备注
+     * @return boolean
+     */
+    Boolean saveRefundBill(StoreOrder order, User user, BigDecimal amount, String mark);
+
+    /**
+     * 资金监控——余额/佣金账单表
+     *
+     * @param request 查询参数（含分页）
      * @return PageInfo
      */
-    PageInfo<MonitorResponse> fundMonitoring(FundsMonitorRequest request, PageParamRequest pageParamRequest);
+    PageInfo<MonitorResponse> fundMonitoring(FundsMonitorRequest request);
+
+    /**
+     * 资金监控——全部账户（余额+信用值+佣金 三表 UNION）
+     *
+     * @param request 查询参数（含分页）
+     * @return PageInfo
+     */
+    PageInfo<MonitorResponse> fundMonitoringAll(FundsMonitorRequest request);
+
+    /**
+     * 资金监控——信用值账户
+     *
+     * @param request 查询参数（含分页）
+     * @return PageInfo
+     */
+    PageInfo<MonitorResponse> fundMonitoringIntegral(FundsMonitorRequest request);
+
+    /**
+     * 资金监控——佣金账户
+     *
+     * @param request 查询参数（含分页）
+     * @return PageInfo
+     */
+    PageInfo<MonitorResponse> fundMonitoringBrokerage(FundsMonitorRequest request);
 
     /**
      * 用户账单记录（现金）

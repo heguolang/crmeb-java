@@ -228,14 +228,14 @@ public class Constants {
     public static final String CONFIG_KEY_STORE_BROKERAGE_MODEL = "store_brokerage_status"; //分销模式1-指定分销2-人人分销
     public static final String CONFIG_KEY_STORE_BROKERAGE_USER_EXTRACT_BANK = "user_extract_bank"; //提现银行卡
     public static final String CONFIG_KEY_STORE_BROKERAGE_EXTRACT_TIME = "extract_time"; //佣金冻结时间
-    public static final String CONFIG_KEY_STORE_INTEGRAL_EXTRACT_TIME = "freeze_integral_day"; //积分冻结时间
+    public static final String CONFIG_KEY_STORE_INTEGRAL_EXTRACT_TIME = "freeze_integral_day"; //信用值冻结时间
     public static final String CONFIG_KEY_STORE_BROKERAGE_PERSON_PRICE = "store_brokerage_price"; //人人分销满足金额
     public static final String CONFIG_KEY_STORE_BROKERAGE_IS_OPEN = "brokerage_func_status"; //分销启用
     public static final String CONFIG_KEY_STORE_BROKERAGE_BIND_TYPE = "brokerageBindind"; //分销关系绑定0-所有游湖，2-新用户
 
-    //积分
-    public static final String CONFIG_KEY_INTEGRAL_RATE = "integral_ratio"; //积分抵用比例(1积分抵多少金额
-    public static final String CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE = "order_give_integral"; //下单支付金额按比例赠送积分（实际支付1元赠送多少积分
+    //信用值
+    public static final String CONFIG_KEY_INTEGRAL_RATE = "integral_ratio"; //信用值抵用比例(1信用值抵多少金额
+    public static final String CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE = "order_give_integral"; //下单支付金额按比例赠送信用值（实际支付1元赠送多少信用值
 
     //分销
     public static final String CONFIG_KEY_DISTRIBUTION_TYPE = "brokerage_bindind";
@@ -301,9 +301,9 @@ public class Constants {
 
 
     //签到
-    public static final Integer SIGN_TYPE_INTEGRAL = 1; //积分
+    public static final Integer SIGN_TYPE_INTEGRAL = 1; //信用值
     public static final Integer SIGN_TYPE_EXPERIENCE = 2; //经验
-    public static final String SIGN_TYPE_INTEGRAL_TITLE = "签到信用值奖励"; //积分
+    public static final String SIGN_TYPE_INTEGRAL_TITLE = "签到信用值奖励"; //信用值
     public static final String SIGN_TYPE_EXPERIENCE_TITLE = "签到经验奖励"; //经验
 
 
@@ -344,7 +344,7 @@ public class Constants {
 
     //用户资金
     public static final String USER_BILL_CATEGORY_MONEY = "now_money"; //用户余额
-    public static final String USER_BILL_CATEGORY_INTEGRAL = "integral"; //积分
+    public static final String USER_BILL_CATEGORY_INTEGRAL = "integral"; //信用值
     public static final String USER_BILL_CATEGORY_SHARE = "share"; //分享
     public static final String USER_BILL_CATEGORY_EXPERIENCE = "experience"; //经验
     public static final String USER_BILL_CATEGORY_BROKERAGE_PRICE = "brokerage_price"; //佣金金额
@@ -359,7 +359,7 @@ public class Constants {
     public static final String USER_BILL_TYPE_GAIN = "gain"; //购买商品赠送
     public static final String USER_BILL_TYPE_PAY_MONEY = "pay_money"; //购买
     public static final String USER_BILL_TYPE_PAY_PRODUCT = "pay_product"; //购买商品
-    public static final String USER_BILL_TYPE_PAY_PRODUCT_INTEGRAL_BACK = "pay_product_integral_back"; //商品退积分
+    public static final String USER_BILL_TYPE_PAY_PRODUCT_INTEGRAL_BACK = "pay_product_integral_back"; //商品退信用值
     public static final String USER_BILL_TYPE_PAY_PRODUCT_REFUND = "pay_product_refund"; //商品退款
     public static final String USER_BILL_TYPE_RECHARGE = "recharge"; //佣金转入
     public static final String USER_BILL_TYPE_PAY_RECHARGE = "pay_recharge"; //充值

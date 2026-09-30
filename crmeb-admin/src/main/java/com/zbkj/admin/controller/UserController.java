@@ -123,7 +123,7 @@ public class UserController {
     /**
      * 根据参数类型查询会员对应的信息
      * @param userId Integer 会员id
-     * @param type int 类型 0=消费记录，1=积分明细，2=签到记录，3=持有优惠券，4=余额变动，5=好友关系
+     * @param type int 类型 0=消费记录，1=信用值明细，2=签到记录，3=持有优惠券，4=余额变动，5=好友关系
      * @param pageParamRequest PageParamRequest 分页
      */
     @PreAuthorize("hasAuthority('admin:user:infobycondition')")
@@ -131,7 +131,7 @@ public class UserController {
     @RequestMapping(value = "/infobycondition", method = RequestMethod.GET)
     @ApiImplicitParams({
             @ApiImplicitParam(name = "userId",example = "1", required = true),
-            @ApiImplicitParam(name = "type", value="0=消费记录，1=积分明细，2=签到记录，3=持有优惠券，4=余额变动，5=好友关系", example = "0"
+            @ApiImplicitParam(name = "type", value="0=消费记录，1=信用值明细，2=签到记录，3=持有优惠券，4=余额变动，5=好友关系", example = "0"
                     , required = true)
     })
     public CommonResult<CommonPage<T>> infoByCondition(@RequestParam(name = "userId") @Valid Integer userId,
@@ -151,10 +151,10 @@ public class UserController {
     }
 
     /**
-     * 操作积分
+     * 操作信用值
      */
     @PreAuthorize("hasAuthority('admin:user:operate:founds')")
-    @ApiOperation(value = "积分余额佣金")
+    @ApiOperation(value = "信用值余额佣金")
     @RequestMapping(value = "/operate/founds", method = RequestMethod.GET)
     public CommonResult<Object> founds(@Validated UserOperateIntegralMoneyRequest request) {
         if (userService.updateIntegralMoney(request)) {

@@ -26,7 +26,7 @@ public interface VoucherWarrantService {
     List<UserWarrantRecordFrontResponse> getWarrantRecordList(PageParamRequest pageParamRequest);
 
     /**
-     * 每日积分强制释放到消费券
+     * 每日信用值强制释放到消费券
      */
     void dailyReleaseIntegralToVoucher();
 

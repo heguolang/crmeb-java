@@ -54,4 +54,22 @@ public class MonitorResponse implements Serializable {
     @ApiModelProperty(value = "用户昵称")
     private String nickName;
 
+    @ApiModelProperty(value = "会员账号（手机号）")
+    private String phone;
+
+    @ApiModelProperty(value = "用户头像")
+    private String avatar;
+
+    @ApiModelProperty(value = "关联单号（订单号等）")
+    private String linkId;
+
+    @ApiModelProperty(value = "账户类型：now_money-余额，integral-信用值，brokerage_price-佣金")
+    private String category;
+
+    @ApiModelProperty(value = "剩余资金")
+    private BigDecimal balance;
+
+    @ApiModelProperty(value = "来源表：bill-余额账单，integral-信用值记录，brokerage-佣金记录")
+    private String sourceTable;
+
 }

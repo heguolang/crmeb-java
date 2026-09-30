@@ -118,10 +118,10 @@ public class StoreProductResponse implements Serializable {
     @ApiModelProperty(value = "商户是否代理 0不可代理1可代理")
     private Boolean merUse;
 
-    @ApiModelProperty(value = "获得积分")
+    @ApiModelProperty(value = "获得信用值")
     private Integer giveIntegral;
 
-    @ApiModelProperty(value = "是否支持积分抵扣，默认否")
+    @ApiModelProperty(value = "是否支持信用值抵扣，默认否")
     private Boolean isIntegral;
 
     @ApiModelProperty(value = "成本价")

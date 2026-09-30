@@ -67,17 +67,17 @@ public interface UserLevelService extends IService<UserLevel> {
     SystemUserLevel resolveEffectiveLevelForReward(User user);
 
     /**
-     * 获取用户当前等级每单赠送积分
+     * 获取用户当前等级每单赠送信用值
      * @param user 用户
-     * @return 赠送积分数
+     * @return 赠送信用值数
      */
     Integer getGiveIntegral(User user);
 
     /**
-     * 获取用户完成本单支付后等级每单赠送积分
+     * 获取用户完成本单支付后等级每单赠送信用值
      * @param user 用户
      * @param payAmount 本单支付金额
-     * @return 赠送积分数
+     * @return 赠送信用值数
      */
     Integer getProjectedGiveIntegral(User user, BigDecimal payAmount);
 

@@ -1,7 +1,7 @@
 package com.zbkj.common.constants;
 
 /**
- * 积分记录常量类
+ * 信用值记录常量类
  * +----------------------------------------------------------------------
  * | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
  * +----------------------------------------------------------------------
@@ -47,7 +47,7 @@ public class IntegralRecordConstants {
     /** 佣金记录标题—签到经验奖励 */
     public static final String BROKERAGE_RECORD_TITLE_SIGN = "签到信用值奖励";
 
-    /** 佣金记录标题—后台积分操作 */
+    /** 佣金记录标题—后台信用值操作 */
     public static final String BROKERAGE_RECORD_TITLE_SYSTEM = "后台信用值操作";
 
     /** 佣金记录标题—订单退款 */

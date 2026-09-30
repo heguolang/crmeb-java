@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 用户积分记录响应对象
+ * 用户信用值记录响应对象
  * +----------------------------------------------------------------------
  * | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
  * +----------------------------------------------------------------------
@@ -28,7 +28,7 @@ import java.util.Date;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@ApiModel(value="UserIntegralRecordResponse对象", description="用户积分记录响应对象")
+@ApiModel(value="UserIntegralRecordResponse对象", description="用户信用值记录响应对象")
 public class UserIntegralRecordResponse implements Serializable {
 
     private static final long serialVersionUID=1L;
@@ -51,7 +51,7 @@ public class UserIntegralRecordResponse implements Serializable {
     @ApiModelProperty(value = "标题")
     private String title;
 
-    @ApiModelProperty(value = "积分")
+    @ApiModelProperty(value = "信用值")
     private BigDecimal integral;
 
     @ApiModelProperty(value = "剩余")

@@ -75,7 +75,7 @@ public class UserSignServiceImpl extends ServiceImpl<UserSignDao, UserSign> impl
     private UserExperienceRecordService userExperienceRecordService;
 
     /**
-     * 用户积分列表
+     * 用户信用值列表
      *
      * @param pageParamRequest 分页类参数
      * @return List<UserSignVo>
@@ -161,7 +161,7 @@ public class UserSignServiceImpl extends ServiceImpl<UserSignDao, UserSign> impl
         userSign.setBalance(currentIntegral.add(signIntegral).setScale(0, RoundingMode.DOWN).intValue());
         userSign.setCreateDay(CrmebDateUtil.strToDate(CrmebDateUtil.nowDate(Constants.DATE_FORMAT_DATE), Constants.DATE_FORMAT_DATE));
 
-        // 生成用户积分记录
+        // 生成用户信用值记录
         UserIntegralRecord integralRecord = new UserIntegralRecord();
         integralRecord.setUid(user.getUid());
         integralRecord.setLinkType(IntegralRecordConstants.INTEGRAL_RECORD_LINK_TYPE_SIGN);
@@ -169,7 +169,7 @@ public class UserSignServiceImpl extends ServiceImpl<UserSignDao, UserSign> impl
         integralRecord.setTitle(IntegralRecordConstants.BROKERAGE_RECORD_TITLE_SIGN);
         integralRecord.setIntegral(signIntegral);
         integralRecord.setBalance(currentIntegral.add(signIntegral));
-        integralRecord.setMark(StrUtil.format("签到积分奖励增加了{}积分", configVo.getIntegral()));
+        integralRecord.setMark(StrUtil.format("签到信用值奖励增加了{}信用值", configVo.getIntegral()));
         integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
 
         UserExperienceRecord experienceRecord = null;
@@ -187,14 +187,14 @@ public class UserSignServiceImpl extends ServiceImpl<UserSignDao, UserSign> impl
             user.setExperience(user.getExperience() + configVo.getExperience());
         }
 
-        // 更新用户积分
+        // 更新用户信用值
         user.setIntegral(currentIntegral.add(signIntegral));
 
         final UserExperienceRecord finalExperienceRecord = experienceRecord;
         Boolean execute = transactionTemplate.execute(e -> {
             //保存签到数据
             save(userSign);
-            // 更新用户积分记录
+            // 更新用户信用值记录
             userIntegralRecordService.save(integralRecord);
             if (ObjectUtil.isNotNull(finalExperienceRecord)) {
                 userExperienceRecordService.save(finalExperienceRecord);
@@ -221,7 +221,7 @@ public class UserSignServiceImpl extends ServiceImpl<UserSignDao, UserSign> impl
     @Override
     public HashMap<String, Object> get() {
         HashMap<String, Object> map = new HashMap<>();
-        //当前积分
+        //当前信用值
         User info = userService.getInfo();
         map.put("integral", info.getIntegral());
         //总计签到天数

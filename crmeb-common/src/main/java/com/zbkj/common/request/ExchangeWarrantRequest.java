@@ -13,21 +13,21 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
- * 兑换权证请求（积分或消费券单独兑换）
+ * 兑换权证请求（信用值或消费券单独兑换）
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@ApiModel(value = "ExchangeWarrantRequest", description = "积分或消费券单独兑换权证")
+@ApiModel(value = "ExchangeWarrantRequest", description = "信用值或消费券单独兑换权证")
 public class ExchangeWarrantRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty(value = "支付方式：integral=积分 voucher=消费券", required = true)
+    @ApiModelProperty(value = "支付方式：integral=信用值 voucher=消费券", required = true)
     @NotBlank(message = "请选择兑换方式")
     private String payType;
 
-    @ApiModelProperty(value = "用于兑换的数量（积分数或消费券数）", required = true)
+    @ApiModelProperty(value = "用于兑换的数量（信用值数或消费券数）", required = true)
     @NotNull(message = "兑换数量不能为空")
     @DecimalMin(value = "0.001", message = "兑换数量必须大于0")
     private BigDecimal amount;

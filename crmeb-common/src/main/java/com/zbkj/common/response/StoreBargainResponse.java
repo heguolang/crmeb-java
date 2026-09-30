@@ -77,7 +77,7 @@ public class StoreBargainResponse {
     @ApiModelProperty(value = "砍价状态 0(到砍价时间不自动开启)  1(到砍价时间自动开启时间)")
     private Boolean status;
 
-    @ApiModelProperty(value = "反多少积分")
+    @ApiModelProperty(value = "反多少信用值")
     private Integer giveIntegral;
 
 //    @ApiModelProperty(value = "砍价活动简介")

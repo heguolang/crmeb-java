@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 用户积分记录Service实现类
+ * 用户信用值记录Service实现类
  * +----------------------------------------------------------------------
  * | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
  * +----------------------------------------------------------------------
@@ -81,11 +81,11 @@ public class UserIntegralRecordServiceImpl extends ServiceImpl<UserIntegralRecor
     }
 
     /**
-     * 积分解冻
+     * 信用值解冻
      */
     @Override
     public void integralThaw() {
-        // 查询需要解冻的积分
+        // 查询需要解冻的信用值
         List<UserIntegralRecord> thawList = findThawList();
         if (CollUtil.isEmpty(thawList)) {
             return;
@@ -97,7 +97,7 @@ public class UserIntegralRecordServiceImpl extends ServiceImpl<UserIntegralRecor
                 continue ;
             }
             record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
-            // 计算积分余额
+            // 计算信用值余额
             BigDecimal balance = nullToZero(user.getIntegral()).add(nullToZero(record.getIntegral()));
             record.setBalance(balance);
             record.setUpdateTime(cn.hutool.core.date.DateUtil.date());
@@ -109,7 +109,7 @@ public class UserIntegralRecordServiceImpl extends ServiceImpl<UserIntegralRecor
                 return Boolean.TRUE;
             });
             if (!execute) {
-                logger.error(StrUtil.format("积分解冻处理—解冻出错，记录id = {}", record.getId()));
+                logger.error(StrUtil.format("信用值解冻处理—解冻出错，记录id = {}", record.getId()));
             }
         }
     }
@@ -173,12 +173,12 @@ public class UserIntegralRecordServiceImpl extends ServiceImpl<UserIntegralRecor
     }
 
     /**
-     * 根据类型条件计算积分总数
+     * 根据类型条件计算信用值总数
      * @param uid 用户uid
      * @param type 类型：1-增加，2-扣减
      * @param date 日期
      * @param linkTypeList 关联类型
-     * @return 积分总数
+     * @return 信用值总数
      */
     @Override
     public BigDecimal getSumIntegral(Integer uid, Integer type, String date, List<String> linkTypeList) {
@@ -202,7 +202,7 @@ public class UserIntegralRecordServiceImpl extends ServiceImpl<UserIntegralRecor
     }
 
     /**
-     * H5用户积分列表
+     * H5用户信用值列表
      * @param uid 用户uid
      * @param pageParamRequest 分页参数
      * @return 记录列表
@@ -219,9 +219,9 @@ public class UserIntegralRecordServiceImpl extends ServiceImpl<UserIntegralRecor
     }
 
     /**
-     * 获取用户冻结的积分
+     * 获取用户冻结的信用值
      * @param uid 用户uid
-     * @return 积分数量
+     * @return 信用值数量
      */
     @Override
     public BigDecimal getFrozenIntegralByUid(Integer uid) {

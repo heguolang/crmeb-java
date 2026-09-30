@@ -37,7 +37,7 @@ public class UpdateUserLevelRequest implements Serializable {
     @NotNull(message = "等级id不能为空")
     private Integer levelId;
 
-    @ApiModelProperty(value = "是否扣减积分，true-扣减，false-不扣减")
+    @ApiModelProperty(value = "是否扣减信用值，true-扣减，false-不扣减")
     private Boolean isSub;
 
 }

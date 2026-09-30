@@ -10,7 +10,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
- * 用户积分响应对象
+ * 用户信用值响应对象
  *  +----------------------------------------------------------------------
  *  | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
  *  +----------------------------------------------------------------------
@@ -24,7 +24,7 @@ import java.math.BigDecimal;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@ApiModel(value="IntegralUserResponse对象", description="用户积分响应对象")
+@ApiModel(value="IntegralUserResponse对象", description="用户信用值响应对象")
 public class IntegralUserResponse implements Serializable {
 
     private static final long serialVersionUID=1L;
@@ -41,7 +41,7 @@ public class IntegralUserResponse implements Serializable {
 //    @ApiModelProperty(value = "用户余额")
 //    private BigDecimal nowMoney;
 //
-    @ApiModelProperty(value = "用户剩余积分")
+    @ApiModelProperty(value = "用户剩余信用值")
     private BigDecimal integral;
 //
 //    @ApiModelProperty(value = "连续签到天数")
@@ -65,16 +65,16 @@ public class IntegralUserResponse implements Serializable {
 //    @ApiModelProperty(value = "昨天是否签到")
 //    private Boolean isYesterdaySign;
 
-    @ApiModelProperty(value = "累计总积分")
+    @ApiModelProperty(value = "累计总信用值")
     private BigDecimal sumIntegral;
 
-    @ApiModelProperty(value = "累计抵扣积分")
+    @ApiModelProperty(value = "累计抵扣信用值")
     private BigDecimal deductionIntegral;
 
-//    @ApiModelProperty(value = "今日获得累计积分")
+//    @ApiModelProperty(value = "今日获得累计信用值")
 //    private Integer nowIntegral;
 
-    @ApiModelProperty(value = "冻结的积分")
+    @ApiModelProperty(value = "冻结的信用值")
     private BigDecimal frozenIntegral;
 
 }

@@ -66,10 +66,10 @@ public class OrderInfoVo {
     @ApiModelProperty(value = "收货人详细地址(前端用)")
     private String detail;
 
-    @ApiModelProperty(value = "用户剩余积分")
+    @ApiModelProperty(value = "用户剩余信用值")
     private BigDecimal userIntegral;
 
-    @ApiModelProperty(value = "订单商品是否均支持积分抵扣（全部支持才为true）")
+    @ApiModelProperty(value = "订单商品是否均支持信用值抵扣（全部支持才为true）")
     private Boolean canUseIntegral;
 
     @ApiModelProperty(value = "用户可用余额")

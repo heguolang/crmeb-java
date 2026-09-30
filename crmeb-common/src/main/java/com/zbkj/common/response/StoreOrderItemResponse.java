@@ -91,13 +91,13 @@ public class StoreOrderItemResponse implements Serializable {
     @ApiModelProperty(value = "支付邮费")
     private BigDecimal payPostage;
 
-    @ApiModelProperty(value = "消费赚取积分")
+    @ApiModelProperty(value = "消费赚取信用值")
     private BigDecimal gainIntegral;
 
-    @ApiModelProperty(value = "使用积分")
+    @ApiModelProperty(value = "使用信用值")
     private BigDecimal useIntegral;
 
-    @ApiModelProperty(value = "给用户退了多少积分")
+    @ApiModelProperty(value = "给用户退了多少信用值")
     private BigDecimal backIntegral;
 
     @ApiModelProperty(value = "是否删除")

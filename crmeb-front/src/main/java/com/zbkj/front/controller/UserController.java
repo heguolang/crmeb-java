@@ -237,18 +237,18 @@ public class UserController {
     }
 
     /**
-     * 用户积分信息
+     * 用户信用值信息
      */
-    @ApiOperation(value = "用户积分信息")
+    @ApiOperation(value = "用户信用值信息")
     @RequestMapping(value = "/integral/user", method = RequestMethod.GET)
     public CommonResult<IntegralUserResponse> getIntegralUser() {
         return CommonResult.success(userCenterService.getIntegralUser());
     }
 
     /**
-     * 积分记录
+     * 信用值记录
      */
-    @ApiOperation(value = "积分记录")
+    @ApiOperation(value = "信用值记录")
     @RequestMapping(value = "/integral/list", method = RequestMethod.GET)
     public CommonResult<CommonPage<UserIntegralRecord>> getIntegralList(@Validated PageParamRequest pageParamRequest) {
         return CommonResult.success(CommonPage.restPage(userCenterService.getUserIntegralRecordList(pageParamRequest)));

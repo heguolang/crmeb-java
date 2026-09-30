@@ -5,8 +5,8 @@ SET NAMES utf8mb4;
 CREATE TABLE IF NOT EXISTS `eb_user_warrant_exchange` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `uid` int(11) NOT NULL DEFAULT 0 COMMENT '用户UID',
-  `pay_type` varchar(20) NOT NULL DEFAULT '' COMMENT '支付方式：integral=积分 voucher=消费券',
-  `pay_amount` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '实际消耗积分或消费券',
+  `pay_type` varchar(20) NOT NULL DEFAULT '' COMMENT '支付方式：integral=信用值 voucher=消费券',
+  `pay_amount` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '实际消耗信用值或消费券',
   `warrant_amount` decimal(12,3) NOT NULL DEFAULT 0.000 COMMENT '兑换权证数量',
   `address` varchar(255) NOT NULL DEFAULT '' COMMENT '权证第三方地址',
   `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '状态：0=待处理 1=已处理',

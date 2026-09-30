@@ -43,7 +43,7 @@ public class OrderComputedPriceRequest {
     @Range(min = 1, max = 2, message = "未知的快递类型")
     private Integer shippingType;
 
-    @ApiModelProperty(value = "是否使用积分")
+    @ApiModelProperty(value = "是否使用信用值")
     @NotNull(message = "是否使用信用值不能为空")
     private Boolean useIntegral;
 

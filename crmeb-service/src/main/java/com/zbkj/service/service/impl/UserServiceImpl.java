@@ -221,7 +221,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
-     * 操作积分、余额
+     * 操作信用值、余额
      */
     @Override
     public Boolean updateIntegralMoney(UserOperateIntegralMoneyRequest request) {
@@ -314,7 +314,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
                 }
             }
 
-            // 处理积分
+            // 处理信用值
             if (request.getIntegralValue() > 0) {
                 // 生成记录
                 BigDecimal integralValue = BigDecimal.valueOf(request.getIntegralValue());
@@ -1015,11 +1015,11 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
-     * 添加/扣减积分
+     * 添加/扣减信用值
      *
      * @param uid         用户id
-     * @param integral    积分
-     * @param nowIntegral 历史积分
+     * @param integral    信用值
+     * @param nowIntegral 历史信用值
      * @param type        类型：add—添加，sub—扣减
      * @return Boolean
      */
@@ -1186,7 +1186,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      * 根据条件获取会员对应信息列表
      *
      * @param userId 用户id
-     * @param type  0=消费记录，1=积分明细，2=签到记录，3=持有优惠券，4=余额变动，5=好友关系
+     * @param type  0=消费记录，1=信用值明细，2=签到记录，3=持有优惠券，4=余额变动，5=好友关系
      * @param pageParamRequest 分页参数
      * @return Object
      */
@@ -1594,10 +1594,10 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
-     * 更新用户积分
+     * 更新用户信用值
      *
      * @param user     用户
-     * @param integral 积分
+     * @param integral 信用值
      * @param type     增加add、扣减sub
      * @return 更新后的用户对象
      */
@@ -1878,7 +1878,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
-     * 获取所有用户账户资产汇总（余额、佣金、积分、消费券、MLSS）
+     * 获取所有用户账户资产汇总（余额、佣金、信用值、消费券、MLSS）
      */
     @Override
     public User getTotalAsset() {

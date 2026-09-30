@@ -56,7 +56,7 @@ public class SystemUserLevel implements Serializable {
     @ApiModelProperty(value = "累计订单数升级门槛（upgradeType=2或3时使用）")
     private Integer upgradeValue;
 
-    @ApiModelProperty(value = "等级赠送积分（每单固定赠送，手输多少送多少）")
+    @ApiModelProperty(value = "等级赠送信用值（每单固定赠送，手输多少送多少）")
     private Integer giveIntegral;
 
     @ApiModelProperty(value = "等级权益描述")

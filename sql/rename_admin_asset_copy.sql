@@ -55,3 +55,52 @@ WHERE `id` = 109 OR `name` = '积分设置';
 -- 定时任务备注
 UPDATE `eb_schedule_job` SET `remark` = '每日信用值强制释放到CCEA'
 WHERE `bean_name` = 'IntegralDailyReleaseTask' AND `method_name` = 'dailyRelease';
+
+-- ============================================================
+-- 收尾（2026-09-30）：数据库里剩下的「积分」一并改成「信用值」
+-- 覆盖：权限按钮名、定时任务备注、附件名、动态表单、组合数据、装修链接、
+--       小程序订阅消息模板、以及用户信用值明细的历史文案。
+-- 幂等：以「含积分」为条件 + REPLACE，可重复执行。
+-- ============================================================
+
+-- 权限按钮名 / 分类名（如「修改积分余额」）
+UPDATE `eb_system_menu` SET `name` = REPLACE(`name`, '积分', '信用值'), `update_time` = NOW()
+WHERE `name` LIKE '%积分%';
+
+UPDATE `eb_category` SET `name` = REPLACE(`name`, '积分', '信用值')
+WHERE `name` LIKE '%积分%';
+
+-- 定时任务备注（其余任务）
+UPDATE `eb_schedule_job` SET `remark` = REPLACE(`remark`, '积分', '信用值')
+WHERE `remark` LIKE '%积分%';
+
+-- 附件名
+UPDATE `eb_system_attachment` SET `name` = REPLACE(`name`, '积分', '信用值')
+WHERE `name` LIKE '%积分%';
+
+-- 动态表单（含非 109 的签到表单）
+UPDATE `eb_system_form_temp`
+SET `name` = REPLACE(`name`, '积分', '信用值'),
+    `info` = REPLACE(`info`, '积分', '信用值'),
+    `content` = REPLACE(`content`, '积分', '信用值'),
+    `update_time` = NOW()
+WHERE `content` LIKE '%积分%' OR `name` LIKE '%积分%' OR `info` LIKE '%积分%';
+
+-- 组合数据（会员中心入口链接名：积分详情 → 信用值详情）
+UPDATE `eb_system_group_data` SET `value` = REPLACE(`value`, '积分', '信用值'), `update_time` = NOW()
+WHERE `value` LIKE '%积分%';
+
+-- 装修页面（DIY 链接名：积分商城 → 信用值商城）
+UPDATE `eb_page_diy` SET `value` = REPLACE(`value`, '积分', '信用值'), `update_time` = NOW()
+WHERE `value` LIKE '%积分%';
+
+-- 小程序订阅消息模板标题
+UPDATE `eb_wechat_program_public_temp` SET `title` = REPLACE(`title`, '积分', '信用值'), `update_time` = NOW()
+WHERE `title` LIKE '%积分%';
+
+-- 用户信用值明细的历史文案（老数据写「积分」，新数据代码已写「信用值」）
+UPDATE `eb_user_integral_record` SET `title` = REPLACE(`title`, '积分', '信用值')
+WHERE `title` LIKE '%积分%';
+
+UPDATE `eb_user_integral_record` SET `mark` = REPLACE(`mark`, '积分', '信用值')
+WHERE `mark` LIKE '%积分%';

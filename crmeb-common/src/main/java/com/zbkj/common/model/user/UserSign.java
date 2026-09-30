@@ -42,13 +42,13 @@ public class UserSign implements Serializable {
     @ApiModelProperty(value = "签到说明")
     private String title;
 
-    @ApiModelProperty(value = "获得积分")
+    @ApiModelProperty(value = "获得信用值")
     private Integer number;
 
-    @ApiModelProperty(value = "剩余积分")
+    @ApiModelProperty(value = "剩余信用值")
     private Integer balance;
 
-    @ApiModelProperty(value = "类型，1积分，2经验")
+    @ApiModelProperty(value = "类型，1信用值，2经验")
     private Integer type;
 
     @ApiModelProperty(value = "签到日期")

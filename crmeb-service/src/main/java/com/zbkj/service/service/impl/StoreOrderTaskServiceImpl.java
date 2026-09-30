@@ -156,7 +156,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
             * 2、写订单日志
             * 3、回滚库存
             * 4、回滚优惠券
-            * 5、回滚积分
+            * 5、回滚信用值
             * */
 
             Boolean execute = transactionTemplate.execute(e -> {
@@ -286,8 +286,8 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
     public Boolean refundOrder(StoreOrder storeOrder) {
         /**
          * 1、写订单日志
-         * 2、回滚消耗积分
-         * 3、回滚获得积分
+         * 2、回滚消耗信用值
+         * 3、回滚获得信用值
          * 4、回滚冻结期佣金
          * 5、回滚经验
          * 6、回滚库存
@@ -349,7 +349,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
         }
         final boolean levelStatsChanged = ObjectUtil.isNotNull(refundExperienceRecord) || orderCountChanged;
 
-        // 回滚积分
+        // 回滚信用值
         List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(storeOrder.getOrderId(), storeOrder.getUid());
         List<UserIntegralRecord> clawbackIntegralList = CollUtil.newArrayList();
         integralRecordList.forEach(record -> {
@@ -362,7 +362,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                 record.setMark(StrUtil.format("订单退款，返还支付扣除得{}信用值", record.getIntegral()));
                 record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
                 record.setUpdateTime(cn.hutool.core.date.DateUtil.date());
-            } else if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD)) {// 赠送积分
+            } else if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD)) {// 赠送信用值
                 if (record.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE)) {
                     clawbackIntegralList.add(record);
                 }
@@ -406,14 +406,14 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
             user.setUpdateTime(DateUtil.date());
             userService.updateById(user);
 
-            // 积分部分
+            // 信用值部分
             if (CollUtil.isNotEmpty(addIntegralList)) {
                 userIntegralRecordService.saveBatch(addIntegralList);
             }
             if (CollUtil.isNotEmpty(updateIntegralList)) {
                 userIntegralRecordService.updateBatchById(updateIntegralList);
             }
-            // 已到账赠送积分扣回
+            // 已到账赠送信用值扣回
             if (CollUtil.isNotEmpty(clawbackIntegralList)) {
                 User integralUser = userService.getById(storeOrder.getUid());
                 BigDecimal before = ObjectUtil.isNotNull(integralUser)
@@ -585,9 +585,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
             pendingBrokerageList.add(record);
         }
 
-        // 获取积分记录（历史待入账赠送积分收货时直接到账）
+        // 获取信用值记录（历史待入账赠送信用值收货时直接到账）
         List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(storeOrder.getOrderId(), storeOrder.getUid());
-        logger.info("收货处理积分条数：" + integralRecordList.size());
+        logger.info("收货处理信用值条数：" + integralRecordList.size());
         List<UserIntegralRecord> pendingIntegralList = integralRecordList.stream()
                 .filter(e -> e.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD))
                 .filter(e -> e.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE)
@@ -623,7 +623,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                 userBrokerageRecordService.updateBatchById(pendingBrokerageList);
             }
 
-            // 历史未到账赠送积分：收货直接入账
+            // 历史未到账赠送信用值：收货直接入账
             if (CollUtil.isNotEmpty(pendingIntegralList)) {
                 User integralUser = userService.getById(storeOrder.getUid());
                 BigDecimal before = ObjectUtil.isNotNull(integralUser)

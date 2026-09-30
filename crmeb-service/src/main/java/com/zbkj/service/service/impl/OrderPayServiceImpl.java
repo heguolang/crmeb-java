@@ -219,7 +219,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         UserBill userBill = userBillInit(storeOrder, user);
         billList.add(userBill);
 
-        // 积分抵扣记录
+        // 信用值抵扣记录
         if (storeOrder.getUseIntegral() > 0) {
             UserIntegralRecord integralRecordSub = integralRecordSubInit(storeOrder, user);
             integralList.add(integralRecordSub);
@@ -241,8 +241,8 @@ public class OrderPayServiceImpl implements OrderPayService {
             user.setPayCount(ObjectUtil.defaultIfNull(user.getPayCount(), 0) + 1);
         }
 
-        // 积分处理：商品配置优先；商品积分为0时再用默认下单赠送比例；另加会员等级赠送
-        // 商品赠送积分（普通商品）
+        // 信用值处理：商品配置优先；商品信用值为0时再用默认下单赠送比例；另加会员等级赠送
+        // 商品赠送信用值（普通商品）
         List<StoreOrderInfo> orderInfoList = storeOrderInfoService.getListByOrderNo(storeOrder.getOrderId());
         int sumProductIntegral = 0;
         if (CollUtil.isNotEmpty(orderInfoList) && ObjectUtil.defaultIfNull(orderInfoList.get(0).getProductType(), 0).equals(0)) {
@@ -254,11 +254,11 @@ public class OrderPayServiceImpl implements OrderPayService {
             }
         }
         if (sumProductIntegral > 0) {
-            // 商品配置有积分：只用商品积分，不再叠加默认比例
+            // 商品配置有信用值：只用商品信用值，不再叠加默认比例
             UserIntegralRecord integralRecord = integralRecordInit(storeOrder, user.getIntegral(), sumProductIntegral, "product");
             integralList.add(integralRecord);
         } else {
-            // 商品积分为0：走默认「下单赠送积分比例」
+            // 商品信用值为0：走默认「下单赠送信用值比例」
             String integralStr = systemConfigService.getValueByKey(Constants.CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE);
             if (StrUtil.isNotBlank(integralStr) && storeOrder.getPayPrice().compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal integralBig = new BigDecimal(integralStr);
@@ -270,7 +270,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             }
         }
 
-        // 会员等级赠送积分（手输多少送多少）
+        // 会员等级赠送信用值（手输多少送多少）
         Integer levelGiveIntegral = userLevelService.getGiveIntegral(user);
         if (levelGiveIntegral > 0) {
             UserIntegralRecord levelIntegralRecord = integralRecordInit(storeOrder, user.getIntegral(), levelGiveIntegral, "level");
@@ -302,7 +302,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         boolean brokerageOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING);
         boolean teamOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_TEAM_BROKERAGE_CREDIT_TIMING);
 
-        // 按配置决定积分是否支付即到账
+        // 按配置决定信用值是否支付即到账
         final BigDecimal integralBeforeCredit = ObjectUtil.defaultIfNull(user.getIntegral(), BigDecimal.ZERO);
         BigDecimal integralBalanceCursor = integralBeforeCredit;
         BigDecimal totalIntegralAddTemp = BigDecimal.ZERO;
@@ -374,7 +374,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             //资金变动
             userBillService.saveBatch(billList);
 
-            // 积分记录
+            // 信用值记录
             userIntegralRecordService.saveBatch(integralList);
 
             // 经验记录
@@ -396,7 +396,7 @@ public class OrderPayServiceImpl implements OrderPayService {
                 userBrokerageRecordService.saveBatch(recordList);
             }
 
-            // 赠送积分：支付即到账
+            // 赠送信用值：支付即到账
             if (totalIntegralAdd.compareTo(BigDecimal.ZERO) > 0) {
                 Boolean integralOk = userService.operationIntegral(user.getUid(), totalIntegralAdd, integralBeforeCredit, "add");
                 if (!Boolean.TRUE.equals(integralOk)) {
@@ -531,7 +531,7 @@ public class OrderPayServiceImpl implements OrderPayService {
     }
 
     /**
-     * 是否已执行过支付成功后置（经验/升级/积分/佣金等）
+     * 是否已执行过支付成功后置（经验/升级/信用值/佣金等）
      */
     private boolean isPaySuccessProcessed(Integer orderId) {
         StoreOrderStatus query = new StoreOrderStatus();
@@ -853,7 +853,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             storeOrderService.updateById(storeOrder);
             // 这里只扣除金额，账单记录在task中处理
             userService.updateNowMoney(user, storeOrder.getPayPrice(), "sub");
-            // 扣除积分
+            // 扣除信用值
             if (storeOrder.getUseIntegral() > 0) {
                 userService.updateIntegral(user, BigDecimal.valueOf(storeOrder.getUseIntegral()), "sub");
             }
@@ -1191,7 +1191,7 @@ public class OrderPayServiceImpl implements OrderPayService {
     }
 
     /**
-     * 积分添加记录
+     * 信用值添加记录
      * @return UserIntegralRecord
      */
     private UserIntegralRecord integralRecordInit(StoreOrder storeOrder, BigDecimal balance, Integer integral, String type) {
@@ -1214,7 +1214,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             integralRecord.setMark(StrUtil.format("用户付款成功,会员等级赠送{}信用值", integral));
         }
         integralRecord.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE);
-        // 获取积分冻结期
+        // 获取信用值冻结期
         String fronzenTime = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_INTEGRAL_EXTRACT_TIME);
         integralRecord.setFrozenTime(Integer.valueOf(Optional.ofNullable(fronzenTime).orElse("0")));
         integralRecord.setCreateTime(CrmebDateUtil.nowDateTime());

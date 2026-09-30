@@ -109,10 +109,10 @@ public class StoreOrderInfoResponse implements Serializable {
     @ApiModelProperty(value = "退款金额")
     private BigDecimal refundPrice;
 
-    @ApiModelProperty(value = "使用积分")
+    @ApiModelProperty(value = "使用信用值")
     private Integer useIntegral;
 
-    @ApiModelProperty(value = "给用户退了多少积分")
+    @ApiModelProperty(value = "给用户退了多少信用值")
     private Integer backIntegral;
 
     @ApiModelProperty(value = "核销码")

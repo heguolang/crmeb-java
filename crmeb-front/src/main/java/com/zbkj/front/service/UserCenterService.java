@@ -186,7 +186,7 @@ public interface UserCenterService extends IService<User> {
     LoginResponse registerBindingPhone(WxBindingPhoneRequest request);
 
     /**
-     * 用户积分记录列表
+     * 用户信用值记录列表
      * @param pageParamRequest 分页参数
      * @return List<UserIntegralRecord>
      */
@@ -200,7 +200,7 @@ public interface UserCenterService extends IService<User> {
     LoginResponse appLogin(RegisterAppWxRequest request);
 
     /**
-     * 获取用户积分信息
+     * 获取用户信用值信息
      * @return IntegralUserResponse
      */
     IntegralUserResponse getIntegralUser();

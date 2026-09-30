@@ -21,7 +21,7 @@ public class VoucherWarrantUserResponse implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty(value = "积分")
+    @ApiModelProperty(value = "信用值")
     private BigDecimal integral;
 
     @ApiModelProperty(value = "消费券")
@@ -39,7 +39,7 @@ public class VoucherWarrantUserResponse implements Serializable {
     @ApiModelProperty(value = "余额")
     private BigDecimal nowMoney;
 
-    @ApiModelProperty(value = "多少积分=1消费券")
+    @ApiModelProperty(value = "多少信用值=1消费券")
     private BigDecimal integralToVoucherRatio;
 
     @ApiModelProperty(value = "多少消费券=1元余额")
@@ -48,7 +48,7 @@ public class VoucherWarrantUserResponse implements Serializable {
     @ApiModelProperty(value = "兑1权证所需消费券")
     private BigDecimal warrantNeedVoucher;
 
-    @ApiModelProperty(value = "兑1权证所需积分")
+    @ApiModelProperty(value = "兑1权证所需信用值")
     private Integer warrantNeedIntegral;
 
     @ApiModelProperty(value = "功能是否开启")

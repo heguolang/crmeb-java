@@ -22,4 +22,10 @@ import java.util.Map;
 public interface UserBillDao extends BaseMapper<UserBill> {
 
     List<UserBillResponse> fundMonitoring(Map<String, Object> map);
+
+    List<UserBillResponse> fundMonitoringAll(Map<String, Object> map);
+
+    List<UserBillResponse> fundMonitoringIntegral(Map<String, Object> map);
+
+    List<UserBillResponse> fundMonitoringBrokerage(Map<String, Object> map);
 }

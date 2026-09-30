@@ -53,7 +53,7 @@ public class OrderInfoDetailVo {
     /** 运费模板ID */
     private Integer tempId;
 
-    /** 获得积分 */
+    /** 获得信用值 */
     private Integer giveIntegral;
 
     /** 是否评价 */

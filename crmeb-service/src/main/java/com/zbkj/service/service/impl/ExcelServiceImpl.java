@@ -107,7 +107,7 @@ public class ExcelServiceImpl implements ExcelService {
         aliasMap.put("stopTime", "砍价结束时间");
         aliasMap.put("sales", "销量");
         aliasMap.put("quotaShow", "库存");
-        aliasMap.put("giveIntegral", "返多少积分");
+        aliasMap.put("giveIntegral", "返多少信用值");
         aliasMap.put("addTime", "添加时间");
 
         return ExportUtil.exportExecl(fileName, "砍价商品导出", voList, aliasMap);

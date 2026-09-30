@@ -36,12 +36,12 @@ public class UserOperateIntegralMoneyRequest implements Serializable {
     @Min(value = 1, message = "请输入正确的uid")
     private Integer uid;
 
-    @ApiModelProperty(value = "积分类型， 1 = 增加， 2 = 减少")
+    @ApiModelProperty(value = "信用值类型， 1 = 增加， 2 = 减少")
     @NotNull
     @Range(min = 1, max = 2, message = "请选择正确的类型， 【1 = 增加， 2 = 减少】")
     private Integer integralType;
 
-    @ApiModelProperty(value = "积分")
+    @ApiModelProperty(value = "信用值")
     @Min(value = 0)
     @Max(value = 999999)
     private Integer integralValue;

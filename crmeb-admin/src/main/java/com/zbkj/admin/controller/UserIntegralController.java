@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 用户积分管理控制器
+ * 用户信用值管理控制器
  * +----------------------------------------------------------------------
  * | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
  * +----------------------------------------------------------------------
@@ -32,19 +32,19 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequestMapping("api/admin/user/integral")
-@Api(tags = "用户积分管理")
+@Api(tags = "用户信用值管理")
 public class UserIntegralController {
 
     @Autowired
     private UserIntegralRecordService integralRecordService;
 
     /**
-     * 积分分页列表
+     * 信用值分页列表
      * @param request 搜索条件
      * @param pageParamRequest 分页参数
      */
     @PreAuthorize("hasAuthority('admin:user:integral:list')")
-    @ApiOperation(value = "积分分页列表")
+    @ApiOperation(value = "信用值分页列表")
     @RequestMapping(value = "/list", method = RequestMethod.POST)
     public CommonResult<CommonPage<UserIntegralRecordResponse>> getList(@RequestBody @Validated AdminIntegralSearchRequest request, @Validated PageParamRequest pageParamRequest) {
         CommonPage<UserIntegralRecordResponse> restPage = CommonPage.restPage(integralRecordService.findAdminList(request, pageParamRequest));

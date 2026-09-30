@@ -72,7 +72,7 @@ public class PayComponentProductAddRequest implements Serializable {
     @ApiModelProperty(value = "单位名", required = true)
     private String unitName;
 
-    @ApiModelProperty(value = "获得积分", required = true)
+    @ApiModelProperty(value = "获得信用值", required = true)
     private Integer giveIntegral;
 
     @ApiModelProperty(value = "虚拟销量", required = true)

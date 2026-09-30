@@ -23,7 +23,7 @@ public class TopDetail {
     private User user;
     // 余额
     private BigDecimal balance;
-    // 积分
+    // 信用值
     private BigDecimal integralCount;
     // 总计订单
     private Integer allOrderCount;

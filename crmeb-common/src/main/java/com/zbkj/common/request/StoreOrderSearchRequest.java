@@ -25,11 +25,11 @@ import java.io.Serializable;
  * +----------------------------------------------------------------------
  */
 @Data
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
 @TableName("eb_store_order")
 @ApiModel(value="StoreOrderSearchRequest对象", description="订单列表请求对象")
-public class StoreOrderSearchRequest implements Serializable {
+public class StoreOrderSearchRequest extends UserCommonSearchRequest implements Serializable {
     private static final long serialVersionUID=1L;
 
     @ApiModelProperty(value = "订单号")
@@ -46,4 +46,7 @@ public class StoreOrderSearchRequest implements Serializable {
     @NotNull(message = "订单类型不能为空")
     @Range(min = 0, max = 2, message = "未知的订单类型")
     private Integer type;
+
+    @ApiModelProperty(value = "物流单号")
+    private String deliveryId;
 }

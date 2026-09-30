@@ -306,7 +306,7 @@ public class HomeServiceImpl implements HomeService {
     /**
      * 经营数据：
      * 1.待发货订单，2.退款中订单，3.库存预警，4.上架商品数，5.库存中商品数，6.提现待审核
-     * 7.总销售额，8.当前佣金，9.当前余额，10.当前积分，11.当前消费券，12.当前MLSS
+     * 7.总销售额，8.当前佣金，9.当前余额，10.当前信用值，11.当前消费券，12.当前MLSS
      * @return HomeOperatingDataResponse
      */
     @Override

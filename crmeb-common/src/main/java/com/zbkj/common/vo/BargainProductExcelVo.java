@@ -47,7 +47,7 @@ public class BargainProductExcelVo {
     @ApiModelProperty(value = "库存剩余")
     private Integer quotaShow;
 
-    @ApiModelProperty(value = "反多少积分")
+    @ApiModelProperty(value = "反多少信用值")
     private BigDecimal giveIntegral;
 
     @ApiModelProperty(value = "添加时间")

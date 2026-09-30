@@ -238,13 +238,11 @@ public interface StoreOrderService extends IService<StoreOrder> {
     StoreOrder getByBargainOrder(Integer bargainId, Integer bargainUserId);
 
     /**
-     * 获取订单状态数量
-     * @param dateLimit 时间端
-     * @param type 订单类型：0普通订单，1-视频号订单, 2-全部订单
-     * @param orderNo 订单号
+     * 获取订单状态数量（筛选条件与列表一致：订单号、物流单号、用户搜索、时间、类型）
+     * @param request 订单列表搜索条件
      * @return StoreOrderCountItemResponse
      */
-    StoreOrderCountItemResponse getOrderStatusNum(String dateLimit, Integer type, String orderNo);
+    StoreOrderCountItemResponse getOrderStatusNum(StoreOrderSearchRequest request);
 
     /**
      * 获取订单统计数据

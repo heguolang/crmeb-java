@@ -89,7 +89,7 @@ public class UserResponse {
     @ApiModelProperty(value = "佣金金额")
     private BigDecimal brokeragePrice;
 
-    @ApiModelProperty(value = "用户剩余积分")
+    @ApiModelProperty(value = "用户剩余信用值")
     private BigDecimal integral;
 
     @ApiModelProperty(value = "消费券")

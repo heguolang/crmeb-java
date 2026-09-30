@@ -285,7 +285,7 @@ public class UserLevelServiceImpl extends ServiceImpl<UserLevelDao, UserLevel> i
     }
 
     /**
-     * 模拟本单支付后用户升级统计数据（用于积分/等级预览）
+     * 模拟本单支付后用户升级统计数据（用于信用值/等级预览）
      */
     private User buildProjectedUserAfterPay(User user, BigDecimal payAmount) {
         User projectedUser = new User();

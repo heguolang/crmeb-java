@@ -139,6 +139,8 @@ public class TeamBrokerageServiceImpl implements TeamBrokerageService {
         int depth = 0;
         int maxDepth = getMaxDepth();
         List<UserBrokerageRecord> recordList = new ArrayList<>();
+        // 平级奖每个等级只发一层（第一处平级），同等级后续重复出现不再发放；更高等级出现时极差/平级照常（踩坑：2026-09-30 订单283多发一层）
+        Set<Integer> peerAwardedLevelIds = new HashSet<>();
         trace.add(StrUtil.format("maxDepth={}", maxDepth <= 0 ? "不限" : maxDepth));
 
         while (ObjectUtil.isNotNull(currentUid) && currentUid > 0) {
@@ -199,7 +201,10 @@ public class TeamBrokerageServiceImpl implements TeamBrokerageService {
                 }
                 accumulatedRate = myRate;
             } else if (compare == 0) {
-                if (peerRate > 0) {
+                if (peerAwardedLevelIds.contains(teamLevelId)) {
+                    trace.add(StrUtil.format("depth{}:uid={}等级{}({})平级奖该等级({})已发过一层,跳过",
+                            depth, currentUid, teamLevelName, teamLevelId, teamLevelId));
+                } else if (peerRate > 0) {
                     CommissionCalcResult calc = calculateCommissionByRateDetail(storeOrder.getId(),
                             toRateDecimal(new BigDecimal(peerRate)));
                     if (calc.amount.compareTo(BigDecimal.ZERO) > 0) {
@@ -208,6 +213,7 @@ public class TeamBrokerageServiceImpl implements TeamBrokerageService {
                                 BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER,
                                 StrUtil.format("获得团队平级奖，团等级【{}】平级奖{}%，分佣{}",
                                         teamLevelName, peerRate, calc.amount)));
+                        peerAwardedLevelIds.add(teamLevelId);
                         trace.add(StrUtil.format("depth{}:uid={}等级{}({})平级{}%,金额{},{}",
                                 depth, currentUid, teamLevelName, teamLevelId, peerRate, calc.amount, calc.detail));
                     } else {

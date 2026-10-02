@@ -427,6 +427,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                     if (!Boolean.TRUE.equals(integralOk)) {
                         throw new CrmebException("退款扣回信用值失败");
                     }
+                    // 同步内存对象：事务末尾 downLevel 会 updateById(user) 整行写回，
+                    // 不同步会把上面 SQL 扣掉的信用值用旧值覆盖回去（踩坑：2026-10-02 订单294）
+                    user.setIntegral(before.subtract(totalSub));
                 }
             }
 
@@ -449,6 +452,10 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                         throw new CrmebException("退款扣回佣金失败，可能佣金已提现");
                     }
                     brokerageCursor.put(r.getUid(), before.subtract(r.getPrice()));
+                }
+                // 同步订单用户内存对象，防止 downLevel 整行写回覆盖佣金扣回（同信用值踩坑）
+                if (brokerageCursor.containsKey(user.getUid())) {
+                    user.setBrokeragePrice(brokerageCursor.get(user.getUid()));
                 }
             }
 

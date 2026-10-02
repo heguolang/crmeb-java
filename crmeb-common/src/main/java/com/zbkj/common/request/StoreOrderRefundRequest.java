@@ -39,5 +39,9 @@ public class StoreOrderRefundRequest {
     @DecimalMin(value = "0.00", message = "退款金额不能少于0.00")
     private BigDecimal amount;
 
+    @ApiModelProperty(value = "退款方式：1=原路退回，2=退款到余额（不传则取系统默认配置 refund_mode）")
+    @Range(min = 1, max = 2, message = "未知的退款方式")
+    private Integer refundMode;
+
     private Integer orderId;
 }

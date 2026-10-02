@@ -8,6 +8,7 @@ import com.zbkj.common.vo.ExpressSheetVo;
 import com.zbkj.common.vo.LogisticsResultVo;
 import com.zbkj.service.service.StoreOrderService;
 import com.zbkj.service.service.StoreOrderVerification;
+import com.zbkj.service.service.SystemConfigService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -44,6 +45,9 @@ public class StoreOrderController {
 
     @Autowired
     private StoreOrderVerification storeOrderVerification;
+
+    @Autowired
+    private SystemConfigService systemConfigService;
 
     /**
      * 分页显示订单表
@@ -148,6 +152,16 @@ public class StoreOrderController {
     @RequestMapping(value = "/refund", method = RequestMethod.GET)
     public CommonResult<Boolean> refund(@Validated StoreOrderRefundRequest request) {
         return CommonResult.success(storeOrderService.refund(request));
+    }
+
+    /**
+     * 获取系统默认退款方式（1=原路退回 2=退款到余额），供退款弹窗默认选中
+     */
+    @PreAuthorize("hasAuthority('admin:order:refund')")
+    @ApiOperation(value = "获取默认退款方式")
+    @RequestMapping(value = "/refund/mode", method = RequestMethod.GET)
+    public CommonResult<Integer> getRefundMode() {
+        return CommonResult.success("2".equals(systemConfigService.getValueByKey("refund_mode")) ? 2 : 1);
     }
 
     /**

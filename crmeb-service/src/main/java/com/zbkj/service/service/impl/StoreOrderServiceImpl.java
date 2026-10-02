@@ -544,6 +544,19 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     }
 
     /**
+     * 解析退款方式：1=原路退回 2=退款到余额；单笔指定优先，缺省读系统默认配置 refund_mode
+     */
+    private int resolveRefundMode(Integer refundMode) {
+        if (refundMode != null && refundMode == 2) {
+            return 2;
+        }
+        if (refundMode != null && refundMode == 1) {
+            return 1;
+        }
+        return "2".equals(systemConfigService.getValueByKey("refund_mode")) ? 2 : 1;
+    }
+
+    /**
      * 按开始结束时间分组订单
      * @param date String 时间范围
      * @param lefTime int 截取创建时间长度
@@ -587,13 +600,19 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
         //用户
         User user = userService.getById(storeOrder.getUid());
 
-        //退款
-        if (storeOrder.getPayType().equals(Constants.PAY_TYPE_WE_CHAT) && request.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+        // 退款方式：1=原路退回 2=退款到余额；单笔指定优先，缺省读系统默认配置 refund_mode
+        final Integer refundMode = resolveRefundMode(request.getRefundMode());
+        // 微信/支付宝订单且选择了「退款到余额」：不调支付渠道，直接退入用户余额
+        boolean refundToBalance = refundMode == 2 && !storeOrder.getPayType().equals(Constants.PAY_TYPE_YUE)
+                && request.getAmount().compareTo(BigDecimal.ZERO) > 0;
+
+        //退款（方式1：微信原路退回）
+        if (refundMode == 1 && storeOrder.getPayType().equals(Constants.PAY_TYPE_WE_CHAT) && request.getAmount().compareTo(BigDecimal.ZERO) > 0) {
             try {
                 storeOrderRefundService.refund(request, storeOrder);
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new CrmebException("微信申请退款失败！");
+                throw new CrmebException("微信原路退回失败：" + e.getMessage() + "；可改用「退款到余额」重试");
             }
         }
         //修改订单退款状态
@@ -628,10 +647,20 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
                 // 退款task
                 redisUtil.lPush(Constants.ORDER_TASK_REDIS_KEY_AFTER_REFUND_BY_USER, storeOrder.getId());
             }
-            // 微信/支付宝原路退回（金额>0）：补记资金监控账单，避免退款记录缺失
-            boolean wechatOriginalRoute = storeOrder.getPayType().equals(Constants.PAY_TYPE_WE_CHAT)
+            // 退款到余额（方式2）：微信/支付宝订单跳过原路退回，直接加用户余额 + 写资金流水
+            if (refundToBalance) {
+                userService.operationNowMoney(user.getUid(), request.getAmount(), user.getNowMoney(), "add");
+                String balanceMark = (storeOrder.getPayType().equals(Constants.PAY_TYPE_WE_CHAT) ? "微信支付退款到余额" : "支付宝支付退款到余额")
+                        + request.getAmount() + "元";
+                userBillService.saveRefundBill(storeOrder, user, request.getAmount(), balanceMark);
+
+                // 退款task
+                redisUtil.lPush(Constants.ORDER_TASK_REDIS_KEY_AFTER_REFUND_BY_USER, storeOrder.getId());
+            }
+            // 原路退回（方式1，金额>0）：补记资金监控账单，避免退款记录缺失
+            boolean wechatOriginalRoute = refundMode == 1 && storeOrder.getPayType().equals(Constants.PAY_TYPE_WE_CHAT)
                     && request.getAmount().compareTo(BigDecimal.ZERO) > 0;
-            boolean aliOriginalRoute = storeOrder.getPayType().equals(Constants.PAY_TYPE_ALI_PAY)
+            boolean aliOriginalRoute = refundMode == 1 && storeOrder.getPayType().equals(Constants.PAY_TYPE_ALI_PAY)
                     && request.getAmount().compareTo(BigDecimal.ZERO) > 0;
             if (wechatOriginalRoute || aliOriginalRoute) {
                 String refundMark = (wechatOriginalRoute ? "微信支付退款到余额" : "支付宝支付退款到余额")
